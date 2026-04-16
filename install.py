@@ -1,0 +1,13 @@
+import subprocess
+import sys
+from pathlib import Path
+
+build_script = Path(__file__).parent / "scripts" / "build_gsplat.py"
+
+print("[HYWorld2] Installing gsplat...")
+try:
+    subprocess.check_call([sys.executable, str(build_script)])
+    print("[HYWorld2] gsplat installed successfully.")
+except subprocess.CalledProcessError as e:
+    print(f"[HYWorld2] WARNING: gsplat build failed (exit code {e.returncode}).")
+    print("[HYWorld2] You can retry manually: run scripts/pipinstall.bat")

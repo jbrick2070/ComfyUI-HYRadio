@@ -1,7 +1,7 @@
 # Core
 torch
 torchvision
-numpy<2.0.0
+numpy
 Pillow
 opencv-python
 scipy
@@ -15,7 +15,7 @@ safetensors
 # 3D / PLY
 plyfile
 trimesh
-open3d==0.18.0
+open3d>=0.18.0
 
 # Config / utils
 omegaconf
