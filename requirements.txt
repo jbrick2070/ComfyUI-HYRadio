@@ -1,0 +1,44 @@
+# Core
+torch
+torchvision
+numpy<2.0.0
+Pillow
+opencv-python
+scipy
+tqdm
+requests
+
+# Model loading
+huggingface_hub
+safetensors
+
+# 3D / PLY
+plyfile
+trimesh
+open3d==0.18.0
+
+# Config / utils
+omegaconf
+einops
+jaxtyping
+typeguard
+
+# COLMAP export (optional)
+# pycolmap==3.10.0
+
+# Gaussian Splatting (required for GS output)
+# gsplat>=1.5.3 — install manually, platform-specific wheel:
+# Linux:  pip install gsplat @ https://github.com/nerfstudio-project/gsplat/releases/download/v1.5.3/gsplat-1.5.3+pt24cu124-cp310-cp310-linux_x86_64.whl
+# Windows: pip install gsplat @ https://github.com/nerfstudio-project/gsplat/releases/download/v1.5.3/gsplat-1.5.3+pt24cu124-cp310-cp310-win_amd64.whl
+
+# CPU offloading (optional, for model_cpu_offload)
+accelerate
+
+# Sky segmentation ONNX fallback (optional)
+# onnxruntime
+
+# FP8 quantization (optional, requires compatible GPU)
+# torchao
+
+# Video input (optional)
+# moviepy==1.0.3

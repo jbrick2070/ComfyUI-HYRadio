@@ -1,0 +1,33 @@
+[project]
+name = "comfyui-hyworld2"
+version = "1.0.0"
+description = "HY-World 2.0 ComfyUI nodes — WorldMirror V1 & V2 3D reconstruction"
+license = { file = "LICENSE" }
+dependencies = [
+    "torch",
+    "torchvision",
+    "numpy<2.0.0",
+    "Pillow",
+    "opencv-python",
+    "huggingface_hub",
+    "safetensors",
+    "omegaconf",
+    "plyfile",
+    "trimesh",
+    "scipy",
+    "tqdm",
+    "einops",
+    "open3d==0.18.0",
+]
+
+[project.optional-dependencies]
+gsplat = ["gsplat>=1.5.3"]
+fp8 = ["torchao"]
+colmap = ["pycolmap==3.10.0"]
+video = ["moviepy==1.0.3"]
+skyseg = ["onnxruntime"]
+
+[tool.comfy]
+PublisherId = "hyworld2"
+DisplayName = "HY-World 2.0 — WorldMirror 3D"
+Icon = ""
