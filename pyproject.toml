@@ -27,8 +27,12 @@ colmap = ["pycolmap==3.10.0"]
 video = ["moviepy==1.0.3"]
 skyseg = ["onnxruntime"]
 
+[project.urls]
+Repository = "https://github.com/AHEKOT/ComfyUI_HYWorld2"
+Documentation = "https://github.com/AHEKOT/ComfyUI_HYWorld2/wiki"
+"Bug Tracker" = "https://github.com/AHEKOT/ComfyUI_HYWorld2/issues"
+
 [tool.comfy]
 PublisherId = "vnccs-hyworld2"
 DisplayName = "HY-World 2.0 — WorldMirror 3D"
 Icon = ""
-Repository = "https://github.com/AHEKOT/ComfyUI_HYWorld2"
