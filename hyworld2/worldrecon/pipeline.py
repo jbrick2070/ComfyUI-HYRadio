@@ -311,7 +311,9 @@ class WorldMirrorPipeline:
             model = WorldMirror(**model_cfg).to(device)
             state = _load_checkpoint_state_dict(ckpt_path)
             _load_state_dict_selective(model, state, source_name=ckpt_path)
-            del state; gc.collect(); torch.cuda.empty_cache()
+            del state
+            gc.collect()
+            torch.cuda.empty_cache()
         else:
             model_dir = _resolve_model_dir(pretrained_model_name_or_path, subfolder)
             model_cfg = _load_model_config(model_dir)
@@ -322,7 +324,9 @@ class WorldMirrorPipeline:
             model = WorldMirror(**model_cfg).to(device)
             state = load_safetensors(os.path.join(model_dir, "model.safetensors"))
             _load_state_dict_selective(model, state, source_name=model_dir)
-            del state; gc.collect(); torch.cuda.empty_cache()
+            del state
+            gc.collect()
+            torch.cuda.empty_cache()
 
         # bf16 casting — two strategies depending on FSDP:
         #

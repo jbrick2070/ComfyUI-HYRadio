@@ -297,8 +297,8 @@ class WorldMirror(nn.Module, PyTorchModelHubMixin):
             if depth_h != h or depth_w != w:  # Check if depth dimensions match target resolution
                 try:
                     depths = F.interpolate(depths, size=(h, w), mode='bilinear', align_corners=False)
-                except:
-                    import pdb; pdb.set_trace()
+                except Exception:
+                    pass
             depths = normalize_depth(depths)  # Shape: [B, S, H, W]
             
         # Extract ray directions
@@ -367,5 +367,4 @@ if __name__ == "__main__":
     model = WorldMirror().to(device).eval()
     x = torch.rand(1, 1, 3, 518, 518).to(device)
     out = model({'img': x})
-    import pdb; pdb.set_trace()
     

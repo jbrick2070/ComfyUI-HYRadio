@@ -1463,7 +1463,8 @@ class VNCCS_SavePLY:
             
             N = len(means)
             dummy_scales = torch.ones(N, 3) * -4.6 # exp(-4.6) ~ 0.01
-            dummy_quats = torch.zeros(N, 4); dummy_quats[:, 0] = 1.0
+            dummy_quats = torch.zeros(N, 4)
+            dummy_quats[:, 0] = 1.0
             dummy_opacities = torch.ones(N) * 100.0 # Opaque
             
             save_gs_ply(pc_path, means, dummy_scales, dummy_quats, colors_sh, dummy_opacities)

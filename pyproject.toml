@@ -31,3 +31,4 @@ skyseg = ["onnxruntime"]
 PublisherId = "vnccs-hyworld2"
 DisplayName = "HY-World 2.0 — WorldMirror 3D"
 Icon = ""
+Repository = "https://github.com/AHEKOT/ComfyUI_HYWorld2"
