@@ -14,14 +14,7 @@ except ImportError:
 
 try:
     from gsplat.rendering import rasterization
-    import gsplat
-    # gsplat swallows the ImportError if the C++ backend fails to load and sets _C = None.
-    # We must explicitly verify that _C loaded, otherwise it will crash later inside rasterization.
-    if hasattr(gsplat, '_C') and getattr(gsplat, '_C') is not None:
-        GSPLAT_AVAILABLE = True
-    else:
-        print("[HYRadio] Warning: gsplat imported but C++ CUDA backend is missing. Disabling gsplat.")
-        GSPLAT_AVAILABLE = False
+    GSPLAT_AVAILABLE = True
 except ImportError:
     GSPLAT_AVAILABLE = False
 
