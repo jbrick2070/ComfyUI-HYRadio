@@ -204,7 +204,7 @@ class HYWorld_EnvironmentPromptBuilder:
                     raw_output = _generate_with_llm(
                         user_prompt,
                         model_id=model_id.split(" ")[0],  # Strip [ALPHA] etc
-                        max_new_tokens=512,
+                        max_new_tokens=768,
                         temperature=0.75,  # Higher temp for creative diversity
                         top_p=0.92,
                         optimization_profile=optimization_profile,
@@ -286,32 +286,40 @@ class HYWorld_EnvironmentPromptBuilder:
         """Extract the first valid JSON object from LLM output."""
         if not text:
             return None
+            
+        def try_parse(s):
+            try: return json.loads(s.strip())
+            except json.JSONDecodeError: pass
+            try: return json.loads(s.strip() + "}")
+            except json.JSONDecodeError: pass
+            try: return json.loads(s.strip() + "}}")
+            except json.JSONDecodeError: return None
+            
         # Try direct parse first
-        try:
-            return json.loads(text.strip())
-        except json.JSONDecodeError:
-            pass
+        res = try_parse(text)
+        if res: return res
         # Try extracting from markdown code block
         match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
         if match:
-            try:
-                return json.loads(match.group(1))
-            except json.JSONDecodeError:
-                pass
+            res = try_parse(match.group(1))
+            if res: return res
         # Try finding first { ... } block
         match = re.search(r'\{[^{}]*"visual_prompt"[^{}]*\}', text, re.DOTALL)
         if match:
-            try:
-                return json.loads(match.group(0))
-            except json.JSONDecodeError:
-                pass
+            res = try_parse(match.group(0))
+            if res: return res
         # Try finding nested JSON with cinematic_lens
         match = re.search(r'\{.*?"visual_prompt".*?"cinematic_lens".*?\}[\s]*\}', text, re.DOTALL)
         if match:
-            try:
-                return json.loads(match.group(0))
-            except json.JSONDecodeError:
-                pass
+            res = try_parse(match.group(0))
+            if res: return res
+        
+        # Super-lenient fallback for truncated json (no closing brace matched by regex):
+        match = re.search(r'\{.*?"visual_prompt".*?"cinematic_lens".*', text, re.DOTALL)
+        if match:
+            res = try_parse(match.group(0))
+            if res: return res
+            
         return None
     
     # ── Keyword-based fallback for visual prompts ─────────────────────────

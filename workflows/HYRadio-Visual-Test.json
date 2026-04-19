@@ -770,8 +770,8 @@
       },
       "outputs": [
         {
-          "name": "",
-          "type": "",
+          "name": "frames_pattern",
+          "type": "STRING",
           "links": [
             10003
           ]
