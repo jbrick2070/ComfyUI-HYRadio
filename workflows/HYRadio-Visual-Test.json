@@ -368,12 +368,16 @@
         {
           "name": "intrinsics",
           "type": "TENSOR",
-          "links": []
+          "links": [
+            3016
+          ]
         },
         {
           "name": "camera_poses",
           "type": "TENSOR",
-          "links": []
+          "links": [
+            3017
+          ]
         }
       ],
       "properties": {
@@ -412,6 +416,16 @@
           "name": "worldmirror_model",
           "type": "WORLDMIRROR_MODEL",
           "link": 3014
+        },
+        {
+          "name": "camera_intrinsics",
+          "type": "TENSOR",
+          "link": 3016
+        },
+        {
+          "name": "camera_poses",
+          "type": "TENSOR",
+          "link": 3017
         }
       ],
       "outputs": [
@@ -986,6 +1000,22 @@
       2015,
       1,
       "STRING"
+    ],
+    [
+      3016,
+      14,
+      1,
+      15,
+      2,
+      "TENSOR"
+    ],
+    [
+      3017,
+      14,
+      2,
+      15,
+      3,
+      "TENSOR"
     ]
   ],
   "version": 0.4

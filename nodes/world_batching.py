@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 
 class HYWorld_BatchCLIPTextEncode:
     """
@@ -19,6 +20,9 @@ class HYWorld_BatchCLIPTextEncode:
     CATEGORY = "HYWorld/Batching"
     
     def encode_batch(self, clip, text_list):
+        if not text_list:
+            raise ValueError("[HYWorld_BatchCLIPTextEncode] text_list cannot be empty.")
+            
         conds = []
         for text in text_list:
             tokens = clip.tokenize(text)
@@ -36,7 +40,6 @@ class HYWorld_BatchCLIPTextEncode:
             out_cond.append(c[0][0])
             out_pooled.append(c[0][1]["pooled_output"])
             
-        import torch.nn.functional as F
         max_len = max([c.shape[1] for c in out_cond]) if out_cond else 0
         
         padded_conds = []

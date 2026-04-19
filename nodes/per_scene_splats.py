@@ -24,6 +24,8 @@ class HYWorld_PerSceneSplats:
                 "use_gsplat": ("BOOLEAN", {"default": True}),
                 "views_per_scene": ("INT", {"default": 1, "min": 1, "max": 16,
                                             "tooltip": "If >1, consumes this many consecutive images per scene from image_batch."}),
+                "camera_intrinsics": ("TENSOR",),
+                "camera_poses": ("TENSOR",),
             }
         }
 
@@ -34,7 +36,8 @@ class HYWorld_PerSceneSplats:
     CATEGORY = "HYWorld/Splats"
 
     def split_and_splat(self, image_batch, worldmirror_model,
-                        target_size=518, use_gsplat=True, views_per_scene=1):
+                        target_size=518, use_gsplat=True, views_per_scene=1,
+                        camera_intrinsics=None, camera_poses=None):
         from .world_mirror_v2 import VNCCS_WorldMirrorV2_3D
         runner = VNCCS_WorldMirrorV2_3D()
 
@@ -49,6 +52,9 @@ class HYWorld_PerSceneSplats:
             start = i * views_per_scene
             stop = start + views_per_scene
             scene_views = image_batch[start:stop]
+            scene_intrinsics = camera_intrinsics[start:stop] if camera_intrinsics is not None else None
+            scene_poses = camera_poses[start:stop] if camera_poses is not None else None
+            
             print(f"[PerSceneSplats] Scene {i+1}/{num_scenes}: "
                   f"{views_per_scene} view(s) -> V2 inference...")
             try:
@@ -57,6 +63,8 @@ class HYWorld_PerSceneSplats:
                     images=scene_views,
                     target_size=target_size,
                     use_gsplat=use_gsplat,
+                    camera_intrinsics=scene_intrinsics,
+                    camera_poses=scene_poses
                 )
                 ply_list.append(result[0])  # PLY_DATA is result[0]
                 print(f"[PerSceneSplats] Scene {i+1}: PLY ok "
