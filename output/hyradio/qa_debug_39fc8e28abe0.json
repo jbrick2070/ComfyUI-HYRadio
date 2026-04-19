@@ -1,0 +1,28 @@
+{
+  "fingerprint": "39fc8e28abe0",
+  "timestamp": "2026-04-18T15:22:41.791304",
+  "params": {
+    "episode_title": "Test Episode",
+    "genre_flavor": "hard_sci_fi",
+    "target_words": 1120,
+    "num_characters": 4,
+    "open_close": false,
+    "self_critique": false,
+    "temperature": 0.85
+  },
+  "news_seed": "Artificial neurons successfully communicate with living brain cells",
+  "news_source": "Latest Science News -- ScienceDaily",
+  "cast": [
+    "ANNOUNCER",
+    "COMMANDER REEVES"
+  ],
+  "stats": {
+    "dialogue_lines": 4,
+    "sfx_cues": 0,
+    "scenes": 2,
+    "word_count": 27,
+    "est_minutes": 1,
+    "script_chars": 360
+  },
+  "guardrails_triggered": []
+}

@@ -32,14 +32,14 @@ class VNCCS_PanoramaMapper:
         try:
             data = json.loads(widget_data)
         except Exception as e:
-            print(f"❌ [VNCCS] Failed to parse widget_data: {e}")
+            print(f" [VNCCS] Failed to parse widget_data: {e}")
             empty = torch.zeros((1, 512, 512, 3))
             return (empty, empty, empty, empty, empty)
 
         # 1. Resolve Panorama Source
         image_path = data.get("image_path")
         if not image_path:
-            print("⚠️ [VNCCS] No image path provided in widget_data")
+            print(" [VNCCS] No image path provided in widget_data")
             empty = torch.zeros((1, 512, 512, 3))
             return (empty, empty, empty, empty, empty)
 
@@ -48,7 +48,7 @@ class VNCCS_PanoramaMapper:
             image_path = os.path.join(folder_paths.get_input_directory(), image_path)
 
         if not os.path.exists(image_path):
-            print(f"⚠️ [VNCCS] Panorama image not found at: {image_path}")
+            print(f" [VNCCS] Panorama image not found at: {image_path}")
             empty = torch.zeros((1, 512, 512, 3))
             return (empty, empty, empty, empty, empty)
 
@@ -214,7 +214,7 @@ class VNCCS_PanoramaMapper:
 
         pano_torch = torch.from_numpy(np.array(new_pano).astype(np.float32) / 255.0).unsqueeze(0)
 
-        print(f"✅ [VNCCS] Walls extracted and Panorama corrected.")
+        print(f" [VNCCS] Walls extracted and Panorama corrected.")
         return (*walls, pano_torch)
 
 NODE_CLASS_MAPPINGS = {

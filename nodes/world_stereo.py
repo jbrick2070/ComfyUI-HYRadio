@@ -100,16 +100,25 @@ def _build_trajectory(
 
     # ── per-preset trajectory construction ───────────────────────────────────
     if preset == "circular":
-        if not PYTORCH3D_AVAILABLE:
-            raise RuntimeError(
-                "circular preset requires pytorch3d. "
-                "Install it or choose a different preset."
-            )
         look_at_point = np.array([0, 0, median_depth], dtype=np.float32)
         angles = np.linspace(0, 2 * math.pi, num_frames + 1)[1:]
         rx = radius * median_depth
         ry = radius * median_depth
         c2ws_np = []
+
+        def _look_at_numpy(eye, target, up=np.array([0, 1, 0], dtype=np.float32)):
+            """Pure-numpy look-at rotation (no pytorch3d required)."""
+            forward = target - eye
+            forward = forward / (np.linalg.norm(forward) + 1e-8)
+            right = np.cross(forward, up)
+            right = right / (np.linalg.norm(right) + 1e-8)
+            true_up = np.cross(right, forward)
+            R = np.eye(3, dtype=np.float32)
+            R[0, :] = right
+            R[1, :] = true_up
+            R[2, :] = -forward
+            return R
+
         for angle in angles:
             cam_pos = np.array(
                 [rx * np.sin(angle), ry * np.cos(angle) - ry, 0],
@@ -117,72 +126,106 @@ def _build_trajectory(
             )
             c2w = np.eye(4, dtype=np.float32)
             c2w[:3, 3] = cam_pos
-            R_new = look_at_rotation(
-                cam_pos,
-                at=(look_at_point.tolist(),),
-                up=((0, 1, 0),),
-                device="cpu",
-            ).numpy()[0]
+            if PYTORCH3D_AVAILABLE:
+                R_new = look_at_rotation(
+                    cam_pos,
+                    at=(look_at_point.tolist(),),
+                    up=((0, 1, 0),),
+                    device="cpu",
+                ).numpy()[0]
+            else:
+                R_new = _look_at_numpy(cam_pos, look_at_point)
             c2w[:3, :3] = R_new
             c2w = c2w_start @ c2w
             c2ws_np.append(c2w)
 
     elif preset == "forward":
-        if not CAMERA_UTILS_AVAILABLE:
-            raise RuntimeError(
-                "forward preset requires worldstereo camera_utils. "
-                "Ensure worldstereo/ is present in the repo root."
-            )
         c2ws_np = []
-        for j in range(1, num_frames + 1):
-            c2w = c2w_start.copy()
-            c2w = camera_backward_forward(c2w, -speed * j)  # negative = forward
-            c2ws_np.append(c2w)
+        if CAMERA_UTILS_AVAILABLE:
+            for j in range(1, num_frames + 1):
+                c2w = c2w_start.copy()
+                c2w = camera_backward_forward(c2w, -speed * j)
+                c2ws_np.append(c2w)
+        else:
+            # Pure-numpy fallback: translate along local -Z axis
+            for j in range(1, num_frames + 1):
+                c2w = c2w_start.copy()
+                forward_vec = np.array([0, 0, -speed * j, 1.0], dtype=np.float32)
+                c2w[:3, 3] = (c2w @ forward_vec)[:3]
+                c2ws_np.append(c2w)
 
     elif preset == "zoom_in":
-        if not CAMERA_UTILS_AVAILABLE:
-            raise RuntimeError(
-                "zoom_in preset requires worldstereo camera_utils. "
-                "Ensure worldstereo/ is present in the repo root."
-            )
         c2ws_np = []
-        for j in range(1, num_frames + 1):
-            c2w = c2w_start.copy()
-            c2w = camera_backward_forward(c2w, -radius * j / num_frames)
-            c2ws_np.append(c2w)
+        if CAMERA_UTILS_AVAILABLE:
+            for j in range(1, num_frames + 1):
+                c2w = c2w_start.copy()
+                c2w = camera_backward_forward(c2w, -radius * j / num_frames)
+                c2ws_np.append(c2w)
+        else:
+            for j in range(1, num_frames + 1):
+                c2w = c2w_start.copy()
+                dist = -radius * j / num_frames
+                c2w[:3, 3] = (c2w @ np.array([0, 0, dist, 1.0], dtype=np.float32))[:3]
+                c2ws_np.append(c2w)
 
     elif preset == "zoom_out":
-        if not CAMERA_UTILS_AVAILABLE:
-            raise RuntimeError(
-                "zoom_out preset requires worldstereo camera_utils. "
-                "Ensure worldstereo/ is present in the repo root."
-            )
         c2ws_np = []
-        for j in range(1, num_frames + 1):
-            c2w = c2w_start.copy()
-            c2w = camera_backward_forward(c2w, radius * j / num_frames)
-            c2ws_np.append(c2w)
+        if CAMERA_UTILS_AVAILABLE:
+            for j in range(1, num_frames + 1):
+                c2w = c2w_start.copy()
+                c2w = camera_backward_forward(c2w, radius * j / num_frames)
+                c2ws_np.append(c2w)
+        else:
+            for j in range(1, num_frames + 1):
+                c2w = c2w_start.copy()
+                dist = radius * j / num_frames
+                c2w[:3, 3] = (c2w @ np.array([0, 0, dist, 1.0], dtype=np.float32))[:3]
+                c2ws_np.append(c2w)
 
     elif preset == "aerial":
-        if not CAMERA_UTILS_AVAILABLE:
-            raise RuntimeError(
-                "aerial preset requires worldstereo camera_utils. "
-                "Ensure worldstereo/ is present in the repo root."
-            )
         c2ws_np = []
         phi_total = math.radians(elevation_deg)
-        theta_total = math.radians(elevation_deg * 0.5)  # half elevation for theta
+        theta_total = math.radians(elevation_deg * 0.5)
         n_theta = max(1, num_frames // 2)
         n_phi = num_frames - n_theta
-        for j in range(1, n_theta + 1):
-            theta_j = theta_total * j / n_theta
-            c2w = camera_rotation(c2w_start.copy(), median_depth, 0, theta_j)
-            c2ws_np.append(c2w)
-        c2w_mid = c2ws_np[-1].copy() if c2ws_np else c2w_start.copy()
-        for j in range(1, n_phi + 1):
-            phi_j = phi_total * j / n_phi
-            c2w = camera_rotation(c2w_mid.copy(), median_depth, phi_j, 0)
-            c2ws_np.append(c2w)
+        if CAMERA_UTILS_AVAILABLE:
+            for j in range(1, n_theta + 1):
+                theta_j = theta_total * j / n_theta
+                c2w = camera_rotation(c2w_start.copy(), median_depth, 0, theta_j)
+                c2ws_np.append(c2w)
+            c2w_mid = c2ws_np[-1].copy() if c2ws_np else c2w_start.copy()
+            for j in range(1, n_phi + 1):
+                phi_j = phi_total * j / n_phi
+                c2w = camera_rotation(c2w_mid.copy(), median_depth, phi_j, 0)
+                c2ws_np.append(c2w)
+        else:
+            # Pure-numpy fallback using native_camera_rotation math inline
+            def _native_rot(c2w, depth, phi, theta):
+                R_el = np.array([[1, 0, 0, 0],
+                                 [0, np.cos(theta), -np.sin(theta), 0],
+                                 [0, np.sin(theta),  np.cos(theta), 0],
+                                 [0, 0, 0, 1]], dtype=np.float32)
+                R_az = np.array([[ np.cos(phi), 0, np.sin(phi), 0],
+                                 [0, 1, 0, 0],
+                                 [-np.sin(phi), 0, np.cos(phi), 0],
+                                 [0, 0, 0, 1]], dtype=np.float32)
+                dummy = np.array([[1, 0, 0, 0],
+                                  [0, 1, 0, 0],
+                                  [0, 0, 1, -depth],
+                                  [0, 0, 0, 1]], dtype=np.float32)
+                dummy = R_az @ R_el @ dummy
+                dummy[:3, 3] += np.array([0, 0, depth], dtype=np.float32)
+                return c2w @ dummy
+
+            for j in range(1, n_theta + 1):
+                theta_j = theta_total * j / n_theta
+                c2w = _native_rot(c2w_start.copy(), median_depth, 0, theta_j)
+                c2ws_np.append(c2w)
+            c2w_mid = c2ws_np[-1].copy() if c2ws_np else c2w_start.copy()
+            for j in range(1, n_phi + 1):
+                phi_j = phi_total * j / n_phi
+                c2w = _native_rot(c2w_mid.copy(), median_depth, phi_j, 0)
+                c2ws_np.append(c2w)
 
     elif preset == "custom":
         data = json.loads(custom_json)

@@ -10,9 +10,14 @@ import torch
 try:
     from flash_attn_interface import flash_attn_func as flash_attn_func_v3
     _USE_FLASH_ATTN_V3 = True
+    _HAS_FLASH = True
 except ImportError:
-    from flash_attn.flash_attn_interface import flash_attn_func as flash_attn_func_v2
     _USE_FLASH_ATTN_V3 = False
+    try:
+        from flash_attn.flash_attn_interface import flash_attn_func as flash_attn_func_v2
+        _HAS_FLASH = True
+    except ImportError:
+        _HAS_FLASH = False
 from ...comm.padding import minimal_pad_to_divisible, depad_by_length, pad_by_length
 import torch.distributed as dist
 from ...comm.communication import _All2All, _Allgather
@@ -68,10 +73,13 @@ class Attention(nn.Module):
                 v = v.transpose(1, 2)
             else:
                 v = v.transpose(1, 2).contiguous()
-            if _USE_FLASH_ATTN_V3:
-                x = flash_attn_func_v3(q, k, v)
+            if _HAS_FLASH:
+                if _USE_FLASH_ATTN_V3:
+                    x = flash_attn_func_v3(q, k, v)
+                else:
+                    x = flash_attn_func_v2(q, k, v, dropout_p=self.attn_drop.p if self.training else 0.0)
             else:
-                x = flash_attn_func_v2(q, k, v, dropout_p=self.attn_drop.p if self.training else 0.0)
+                x = F.scaled_dot_product_attention(q, k, v, dropout_p=self.attn_drop.p if self.training else 0.0)
             if x.is_contiguous():
                 x = x.transpose(1, 2)
             else:

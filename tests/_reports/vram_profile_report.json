@@ -1,0 +1,73 @@
+{
+  "device_name": "NVIDIA GeForce RTX 5080 Laptop GPU",
+  "ceiling_bytes": 15569256448,
+  "hardware_bytes": 17179869184,
+  "phases": [
+    {
+      "name": "gemma4_script_writer",
+      "peak_bytes": 10071308288,
+      "current_bytes_after": 75106304,
+      "wall_seconds": 904.5892154999892,
+      "notes": ""
+    },
+    {
+      "name": "gemma4_director",
+      "peak_bytes": 10798949888,
+      "current_bytes_after": 75106304,
+      "wall_seconds": 189.95369900000514,
+      "notes": ""
+    },
+    {
+      "name": "kokoro_announcer",
+      "peak_bytes": 1026014720,
+      "current_bytes_after": 76154880,
+      "wall_seconds": 3.672904999984894,
+      "notes": ""
+    },
+    {
+      "name": "musicgen_theme",
+      "peak_bytes": 4567610368,
+      "current_bytes_after": 76154880,
+      "wall_seconds": 34.54837629999383,
+      "notes": ""
+    },
+    {
+      "name": "batch_bark_generator",
+      "peak_bytes": 2521872896,
+      "current_bytes_after": 2345287168,
+      "wall_seconds": 512.5128395000065,
+      "notes": ""
+    },
+    {
+      "name": "scene_sequencer",
+      "peak_bytes": 2356724224,
+      "current_bytes_after": 2345287168,
+      "wall_seconds": 0.743281000002753,
+      "notes": ""
+    },
+    {
+      "name": "audio_enhance",
+      "peak_bytes": 2849778176,
+      "current_bytes_after": 2345287168,
+      "wall_seconds": 0.35993150001741014,
+      "notes": ""
+    },
+    {
+      "name": "episode_assembler",
+      "peak_bytes": 2345287168,
+      "current_bytes_after": 2345287168,
+      "wall_seconds": 0.03420110000297427,
+      "notes": ""
+    },
+    {
+      "name": "video_engine",
+      "peak_bytes": 2345287168,
+      "current_bytes_after": 2345287168,
+      "wall_seconds": 178.96557290002238,
+      "notes": "runner_error: KeyError: 0"
+    }
+  ],
+  "overall_peak_bytes": 10798949888,
+  "overall_peak_gb": 10.057305812835693,
+  "ceiling_gb": 14.5
+}

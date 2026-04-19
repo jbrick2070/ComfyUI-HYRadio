@@ -41,7 +41,7 @@ try:
     SKYSEG_AVAILABLE = True
 except ImportError:
     SKYSEG_AVAILABLE = False
-    print("⚠️ [VNCCS] onnxruntime not found. Sky segmentation will be disabled.")
+    print(" [VNCCS] onnxruntime not found. Sky segmentation will be disabled.")
 
 
 # ----------------------------------------------------------------------------
@@ -49,20 +49,20 @@ except ImportError:
 # ----------------------------------------------------------------------------
 try:
     import gsplat
-    print(f"✅ [VNCCS] gsplat library detected: Version {gsplat.__version__}")
+    print(f" [VNCCS] gsplat library detected: Version {gsplat.__version__}")
     GSPLAT_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ [VNCCS] gsplat library NOT found: {e}")
+    print(f" [VNCCS] gsplat library NOT found: {e}")
     GSPLAT_AVAILABLE = False
 except Exception as e:
-    print(f"❌ [VNCCS] Error loading gsplat: {e}")
+    print(f" [VNCCS] Error loading gsplat: {e}")
     GSPLAT_AVAILABLE = False
 
 if torch.cuda.is_available():
-    print(f"✅ [VNCCS] CUDA is available: {torch.version.cuda}")
+    print(f" [VNCCS] CUDA is available: {torch.version.cuda}")
     print(f"   Device: {torch.cuda.get_device_name(0)}")
 else:
-    print("⚠️ [VNCCS] CUDA is NOT available. gsplat requires CUDA.")
+    print(" [VNCCS] CUDA is NOT available. gsplat requires CUDA.")
 # ----------------------------------------------------------------------------
 
 
@@ -134,7 +134,7 @@ def equirect_to_perspective(
         scale = max(0.5, scale * 0.8 + 0.2) 
         original_fov = fov_deg
         fov_deg = fov_deg * scale
-        # print(f"🔭 Dynamic FOV: {original_fov}° -> {fov_deg:.1f}° (Pitch {pitch_deg}°)")
+        # print(f" Dynamic FOV: {original_fov}° -> {fov_deg:.1f}° (Pitch {pitch_deg}°)")
 
     # Convert image to tensor [1, C, H, W]
     if isinstance(equirect_img, Image.Image):
@@ -366,7 +366,7 @@ class VNCCS_LoadWorldMirrorModel:
     def load_model(self, device="cuda", sampling_strategy="uniform", enable_conf_filter=False, conf_threshold_percent=30.0):
         from src.models.models.worldmirror import WorldMirror
         
-        print(f"🔄 Loading WorldMirror model (Strategy: {sampling_strategy}, Conf Filter: {enable_conf_filter}, Thresh: {conf_threshold_percent}%)")
+        print(f" Loading WorldMirror model (Strategy: {sampling_strategy}, Conf Filter: {enable_conf_filter}, Thresh: {conf_threshold_percent}%)")
         
         gs_params = {
             "enable_conf_filter": enable_conf_filter,
@@ -380,7 +380,7 @@ class VNCCS_LoadWorldMirrorModel:
         )
         model = model.to(device)
         model.eval()
-        print("✅ WorldMirror model loaded")
+        print(" WorldMirror model loaded")
         
         return ({"model": model, "device": device},)
 
@@ -427,7 +427,7 @@ class VNCCS_WorldMirror3D:
         from torchvision import transforms
         
         if apply_sky_mask and not SKYSEG_AVAILABLE:
-            print("⚠️ Sky segmentation requested but onnxruntime is missing. Ignoring.")
+            print(" Sky segmentation requested but onnxruntime is missing. Ignoring.")
             apply_sky_mask = False
         
         # Ensure target_size is divisible by 14
@@ -500,7 +500,7 @@ class VNCCS_WorldMirror3D:
         # If HD/Ultra is enabled, we slice EACH view into multiple overlapping 518px patches.
         # This effectively increases point density by 4x (HD) or 9x (Ultra).
         if resolution_mode in ["HD", "Ultra"]:
-            print(f"👺 [WorldMirror] HD Tiling Enabled ({resolution_mode}). Slicing views...")
+            print(f" [WorldMirror] HD Tiling Enabled ({resolution_mode}). Slicing views...")
             new_tensor_list = []
             new_mask_list = []
             new_intrinsics_list = []
@@ -572,7 +572,7 @@ class VNCCS_WorldMirror3D:
         # Use execution_device (GPU) for inputs, as accelerate expects inputs on the compute device
         imgs_tensor = imgs_tensor.unsqueeze(0).to(execution_device)
 
-        print(f"🚀 Running WorldMirror inference on {B} images (offload: {offload_scheme})...")
+        print(f" Running WorldMirror inference on {B} images (offload: {offload_scheme})...")
         
         if offload_scheme != "none" and execution_device.type == "cuda":
             if offload_scheme == "sequential_cpu_offload":
@@ -596,7 +596,7 @@ class VNCCS_WorldMirror3D:
                      from accelerate.hooks import remove_hook_from_module
                      remove_hook_from_module(worldmirror, recurse=True)
                  except Exception as e:
-                     print(f"⚠️ Failed to remove hooks: {e}")
+                     print(f" Failed to remove hooks: {e}")
 
                  # 1. Enable manual offload in transformer
                  if hasattr(worldmirror.visual_geometry_transformer, "manual_offload"):
@@ -629,16 +629,16 @@ class VNCCS_WorldMirror3D:
                     from accelerate import cpu_offload
                     cpu_offload(worldmirror, execution_device=execution_device)
                 except ImportError:
-                    print("⚠️ Accelerate not installed, ignoring model_cpu_offload")
+                    print(" Accelerate not installed, ignoring model_cpu_offload")
                 except Exception as e:
-                    print(f"⚠️ Offload failed: {e}")
+                    print(f" Offload failed: {e}")
                     # Do NOT fallback to full GPU load if offload requested, as it likely causes OOM
         else:
             # Standard behavior: move everything to GPU
             param = next(worldmirror.parameters())
             # Check if likely meta device
             if param.device.type == 'meta':
-                 print("⚠️ Model is on meta device, attempting to materialize empty weights...")
+                 print(" Model is on meta device, attempting to materialize empty weights...")
                  worldmirror.to_empty(device=execution_device)
                  # This is risky as weights are lost. But better than crash.
                  # Ideally user should reload model.
@@ -655,7 +655,7 @@ class VNCCS_WorldMirror3D:
         distortion_mask_np = None
         filter_mask_tensor = None
         if any(m is not None for m in mask_list):
-            print("👺 Preparing distortion masks for filter...")
+            print(" Preparing distortion masks for filter...")
             clean_masks = []
             for m in mask_list:
                 if m is not None:
@@ -676,13 +676,13 @@ class VNCCS_WorldMirror3D:
 
         cond_flags = [0, 0, 0]
         if camera_intrinsics is not None:
-             print("👺 [WorldMirror] Enabling Camera Intrinsics Conditioning...")
+             print(" [WorldMirror] Enabling Camera Intrinsics Conditioning...")
              # camera_intrinsics is [S, 3, 3]. Model expects [B, S, 3, 3]
              views["camera_intrs"] = camera_intrinsics.unsqueeze(0).to(execution_device)
              cond_flags[2] = 1 # Enable Rays/Intrinsics conditioning
         
         if camera_poses is not None:
-             print("👺 [WorldMirror] Enabling Camera Pose Conditioning...")
+             print(" [WorldMirror] Enabling Camera Pose Conditioning...")
              # Since we injected views["camera_poses"] above, we just enable the flag
              cond_flags[0] = 1 # Enable Pose conditioning
         
@@ -692,7 +692,7 @@ class VNCCS_WorldMirror3D:
             
             # Force disable if gsplat lib is missing
             if use_gsplat and not GSPLAT_AVAILABLE:
-                print("⚠️ gsplat requested but library not found. Falling back to Point Cloud.")
+                print(" gsplat requested but library not found. Falling back to Point Cloud.")
                 worldmirror.enable_gs = False
             else:
                 worldmirror.enable_gs = use_gsplat
@@ -747,7 +747,7 @@ class VNCCS_WorldMirror3D:
                  worldmirror.to("cpu")
                  torch.cuda.empty_cache()
 
-        print("✅ Inference complete")
+        print(" Inference complete")
         
         # ============================================================================
         # Post-Processing: Filtering & Sky Masking (Ported)
@@ -759,12 +759,12 @@ class VNCCS_WorldMirror3D:
         # 1. Compute Sky Mask
         sky_mask_np = None
         if apply_sky_mask:
-            print("🌤️ Computing sky masks...")
+            print(" Computing sky masks...")
             sky_model_path = os.path.join(folder_paths.models_dir, "skyseg.onnx")
             
             # Download if missing
             if not os.path.exists(sky_model_path):
-                print(f"⬇️ Downloading skyseg.onnx to {sky_model_path}...")
+                print(f" Downloading skyseg.onnx to {sky_model_path}...")
                 download_file_from_url(
                     "https://huggingface.co/JianyuanWang/skyseg/resolve/main/skyseg.onnx", 
                     sky_model_path
@@ -793,21 +793,21 @@ class VNCCS_WorldMirror3D:
                     
                     sky_mask_np = np.stack(sky_mask_list, axis=0) # [S, H, W]
                     sky_mask_np = sky_mask_np > 0 # Binary: True = non-sky
-                    print(f"✅ Sky masks computed for {S} frames")
+                    print(f" Sky masks computed for {S} frames")
                 except Exception as e:
-                    print(f"❌ Sky segmentation failed: {e}")
+                    print(f" Sky segmentation failed: {e}")
                     sky_mask_np = None
             else:
-                print("❌ Failed to download skyseg.onnx")
+                print(" Failed to download skyseg.onnx")
 
         # 2. Compute Filter Mask
         
         # Prepare Distortion Mask (Moved up)
         # distortion_mask_np is already computed above
         if distortion_mask_np is not None:
-             print("👺 Re-using pre-computed distortion mask for post-filtering...")
+             print(" Re-using pre-computed distortion mask for post-filtering...")
         
-        print("🔍 Computing geometric filter mask...")
+        print(" Computing geometric filter mask...")
         pts3d_conf_np = predictions["pts3d_conf"][0].detach().cpu().numpy()
         depth_preds_np = predictions["depth"][0].detach().cpu().numpy()
         normal_preds_np = predictions["normals"][0].detach().cpu().numpy()
@@ -847,7 +847,7 @@ class VNCCS_WorldMirror3D:
             # Why: If enable_prune=True (default), splats are a sparse point cloud and do not map 1:1 to pixels.
             # Using a pixel-grid mask (final_mask) on sparse splats is mathematically wrong and causes size mismatches.
             # We pass splats raw, trusting the Model's internal GaussianSplatRenderer to have pruned/filtered them.
-            print(f"ℹ️ Passing native Gaussian Splats (Pruned/Internal Filter).")
+            print(f"ℹ Passing native Gaussian Splats (Pruned/Internal Filter).")
             # Ensure consistency of list vs tensor
             pass
         
@@ -962,7 +962,7 @@ class VNCCS_Equirect360ToViews:
         masks = []
         total = len(yaw_angles) * len(pitch_list)
         
-        print(f"🔄 Extracting {total} views from 360° panorama...")
+        print(f" Extracting {total} views from 360° panorama...")
         print(f"   - Settings: FOV={fov}, Step={yaw_step}, Output={output_size}")
         print(f"   - Features: DynamicFOV={dynamic_fov}, DistortionCorrection={correct_distortion}, Mask={output_distortion_mask}")
 
@@ -1049,7 +1049,7 @@ class VNCCS_Equirect360ToViews:
         intrinsics_tensor = torch.from_numpy(np.stack(intrinsics_list, axis=0))
         poses_tensor = torch.from_numpy(np.stack(poses_list, axis=0))
         
-        print(f"✅ Extracted {total} views (Channels: {views_tensor.shape[-1]})")
+        print(f" Extracted {total} views (Channels: {views_tensor.shape[-1]})")
         
         return (views_tensor, intrinsics_tensor, poses_tensor)
 
@@ -1060,39 +1060,39 @@ def extract_splat_params(data):
     Handles batches, lists, and point cloud fallbacks.
     """
     if data is None: 
-        print("❌ [extract_splat_params] ERROR: Input data is None")
+        print(" [extract_splat_params] ERROR: Input data is None")
         return None
     
-    print(f"🔍 [extract_splat_params] Input keys: {list(data.keys())}")
+    print(f" [extract_splat_params] Input keys: {list(data.keys())}")
     splats = data.get("splats")
     pts3d = data.get("pts3d")
     images = data.get("images")
     
     # Debug: print raw value of splats
-    print(f"🔍 [extract_splat_params] splats raw value: {type(splats)}, is None: {splats is None}")
+    print(f" [extract_splat_params] splats raw value: {type(splats)}, is None: {splats is None}")
     if splats is not None:
         if isinstance(splats, dict):
-            print(f"🔍 [extract_splat_params] splats dict keys: {list(splats.keys())}")
+            print(f" [extract_splat_params] splats dict keys: {list(splats.keys())}")
         elif isinstance(splats, (list, tuple)):
-            print(f"🔍 [extract_splat_params] splats is list/tuple with {len(splats)} elements")
+            print(f" [extract_splat_params] splats is list/tuple with {len(splats)} elements")
             if len(splats) > 0:
-                print(f"🔍 [extract_splat_params] splats[0] type: {type(splats[0])}")
+                print(f" [extract_splat_params] splats[0] type: {type(splats[0])}")
         else:
-            print(f"🔍 [extract_splat_params] splats is {type(splats)}")
+            print(f" [extract_splat_params] splats is {type(splats)}")
     
     device = torch.device("cpu") # Extract to CPU for saving
     
     # Try to extract from splats
     if splats is not None:
-        print(f"🔍 [extract_splat_params] Splats found, type: {type(splats)}")
+        print(f" [extract_splat_params] Splats found, type: {type(splats)}")
         
         # Handle list-wrapped splats from some ComfyUI custom types
         if isinstance(splats, list) and len(splats) > 0:
-            print(f"🔍 [extract_splat_params] splats is list with {len(splats)} elements, taking first")
+            print(f" [extract_splat_params] splats is list with {len(splats)} elements, taking first")
             splats = splats[0]
             
         if isinstance(splats, dict) and len(splats) > 0:
-            print(f"✅ [extract_splat_params] Processing splats dict with keys: {list(splats.keys())}")
+            print(f" [extract_splat_params] Processing splats dict with keys: {list(splats.keys())}")
             
             # Extract parameters from splats dict
             keys = ["means", "scales", "quats", "sh", "colors", "opacities"]
@@ -1107,7 +1107,7 @@ def extract_splat_params(data):
                 params[k] = v.detach().cpu().float()
             
             if "means" not in params:
-                print("❌ [extract_splat_params] No 'means' in splats, falling back to pts3d")
+                print(" [extract_splat_params] No 'means' in splats, falling back to pts3d")
             else:
                 means = params["means"].reshape(-1, 3)
                 
@@ -1116,10 +1116,10 @@ def extract_splat_params(data):
                     scales = scales.reshape(-1, 3)
                     # Heuristic: if scales are mostly negative, they are in log space
                     if scales.to(torch.float32).mean() < -0.5:
-                        print(f"🔍 [extract_splat_params] Detecting log-scales, applying exp()")
+                        print(f" [extract_splat_params] Detecting log-scales, applying exp()")
                         scales = torch.exp(scales)
                 else:
-                    print("⚠️ [extract_splat_params] No scales in splats, using default")
+                    print(" [extract_splat_params] No scales in splats, using default")
                     scales = torch.ones(means.shape[0], 3) * 0.01
                 
                 quats = params.get("quats")
@@ -1136,7 +1136,7 @@ def extract_splat_params(data):
                     opacities = opacities.reshape(-1)
                     # Heuristic: if opacities have values far outside [0, 1], they are logits
                     if opacities.min() < -2.0 or opacities.max() > 2.0:
-                        print(f"🔍 [extract_splat_params] Detecting logit-opacities, applying sigmoid()")
+                        print(f" [extract_splat_params] Detecting logit-opacities, applying sigmoid()")
                         opacities = torch.sigmoid(opacities)
                 else:
                     opacities = torch.ones(means.shape[0]) * 0.9
@@ -1157,7 +1157,7 @@ def extract_splat_params(data):
                 else:
                     colors_data = torch.ones(means.shape[0], 3) * 0.5
                 
-                print(f"📊 [extract_splat_params] Gaussian Stats:")
+                print(f" [extract_splat_params] Gaussian Stats:")
                 print(f"   - Means:  {means.shape} min={means.min(dim=0)[0].tolist()}, max={means.max(dim=0)[0].tolist()}")
                 if scales is not None: print(f"   - Scales: {scales.shape}")
                 if quats is not None: print(f"   - Quats:  {quats.shape}")
@@ -1166,14 +1166,14 @@ def extract_splat_params(data):
                 
                 return means, scales, quats, colors_data, opacities
         else:
-            print(f"⚠️ [extract_splat_params] splats is {type(splats)}, not a valid dict")
+            print(f" [extract_splat_params] splats is {type(splats)}, not a valid dict")
     
     # Fallback: Convert point cloud to dummy Gaussians
     if pts3d is not None or data.get("pts3d_filtered") is not None:
-        print("🔍 [extract_splat_params] Using pts3d fallback (point cloud mode)")
+        print(" [extract_splat_params] Using pts3d fallback (point cloud mode)")
         
         if data.get("pts3d_filtered") is not None:
-             print("✨ Using FILTERED point cloud")
+             print(" Using FILTERED point cloud")
              means = data["pts3d_filtered"].detach().cpu().float()
         else:
              means = pts3d[0].view(-1, 3).detach().cpu().float()
@@ -1202,10 +1202,10 @@ def extract_splat_params(data):
             if mask is not None:
                 # Ensure mask matches raw size
                 if mask.shape[0] == colors_data.shape[0]:
-                    print(f"✨ [extract_splat_params] Applying filter mask to colors | Mask: {mask.shape} | Colors: {colors_data.shape}")
+                    print(f" [extract_splat_params] Applying filter mask to colors | Mask: {mask.shape} | Colors: {colors_data.shape}")
                     colors_data = colors_data[mask.to(colors_data.device)]
                 else:
-                    print(f"⚠️ [extract_splat_params] Mask size {mask.shape[0]} != Colors size {colors_data.shape[0]}, ignoring")
+                    print(f" [extract_splat_params] Mask size {mask.shape[0]} != Colors size {colors_data.shape[0]}, ignoring")
             
             if idx is not None:
                 colors_data = colors_data[idx]
@@ -1213,17 +1213,17 @@ def extract_splat_params(data):
             
             # DEBUG: Color Stats
             if colors_data.numel() > 0:
-                print(f"🎨 [extract_splat_params] Colors Stats: Min={colors_data.min():.3f}, Max={colors_data.max():.3f}, Mean={colors_data.mean():.3f}")
+                print(f" [extract_splat_params] Colors Stats: Min={colors_data.min():.3f}, Max={colors_data.max():.3f}, Mean={colors_data.mean():.3f}")
             else:
-                print("🎨 [extract_splat_params] Colors Stats: empty tensor")
+                print(" [extract_splat_params] Colors Stats: empty tensor")
         else:
             colors_data = torch.ones(N, 3) * 0.5
         
-        print(f"📊 [extract_splat_params] Point Cloud Stats: {N:,} points | GSPLAT_AVAILABLE={GSPLAT_AVAILABLE}")
+        print(f" [extract_splat_params] Point Cloud Stats: {N:,} points | GSPLAT_AVAILABLE={GSPLAT_AVAILABLE}")
             
         return means, scales, quats, colors_data, opacities
         
-    print("❌ [extract_splat_params] No valid data found")
+    print(" [extract_splat_params] No valid data found")
     return None
 
 
@@ -1358,7 +1358,7 @@ class VNCCS_SavePLY:
         R = None
         if rotate_x != 0 or rotate_y != 0 or rotate_z != 0:
             R = self._rotation_matrix(rotate_x, rotate_y, rotate_z).cpu()
-            print(f"🔄 Applying rotation: X={rotate_x}°, Y={rotate_y}°, Z={rotate_z}°")
+            print(f" Applying rotation: X={rotate_x}°, Y={rotate_y}°, Z={rotate_z}°")
         
         if save_gaussians:
             # 1. Try Native Extraction (Primary)
@@ -1379,7 +1379,7 @@ class VNCCS_SavePLY:
                     scales = get_tensor("scales", 3)
                     quats = get_tensor("quats", 4)
                     
-                    print(f"🔍 [SavePLY] Inspecting Native Splats: Means={means.shape if means is not None else 'None'}")
+                    print(f" [SavePLY] Inspecting Native Splats: Means={means.shape if means is not None else 'None'}")
                     
                     # Colors logic from infer.py
                     if "sh" in splats:
@@ -1391,14 +1391,14 @@ class VNCCS_SavePLY:
                     # FIX: Handle broadcasting if colors are global (1, C) but means are (N, 3)
                     if colors is not None and means is not None:
                         if colors.shape[0] == 1 and means.shape[0] > 1:
-                            print(f"🎨 [SavePLY] Broadcasting global color {colors.shape} to {means.shape[0]} points")
+                            print(f" [SavePLY] Broadcasting global color {colors.shape} to {means.shape[0]} points")
                             colors = colors.repeat(means.shape[0], 1)
                          
                     opacities = get_tensor("opacities", 1).reshape(-1)
                     
                     if means is not None and scales is not None and quats is not None:
                          # Debug Stats
-                         print(f"📊 [SavePLY Native] Stats:")
+                         print(f" [SavePLY Native] Stats:")
                          print(f"   - Means: {means.shape} [Min: {means.min():.3f}, Max: {means.max():.3f}]")
                          print(f"   - Scales: {scales.shape} [Min: {scales.min():.3f}, Max: {scales.max():.3f}, Mean: {scales.mean():.3f}]")
                          print(f"   - Opacity: {opacities.shape} [Min: {opacities.min():.3f}, Max: {opacities.max():.3f}]")
@@ -1411,14 +1411,14 @@ class VNCCS_SavePLY:
                          gs_path = self._get_unique_path(output_dir, filename, "gaussians", "ply")
                          save_gs_ply(gs_path, means, scales, quats, colors, opacities)
                          saved_files.append(gs_path)
-                         print(f"💾 [SavePLY] SUCCESS: Saved gaussians (Native): {os.path.basename(gs_path)} ({len(means)} pts)")
+                         print(f" [SavePLY] SUCCESS: Saved gaussians (Native): {os.path.basename(gs_path)} ({len(means)} pts)")
                          native_success = True
                 except Exception as e:
-                    print(f"⚠️ [SavePLY] Native extraction failed, falling back: {e}")
+                    print(f" [SavePLY] Native extraction failed, falling back: {e}")
             
             # 2. Fallback to Helper (if splats missing or native failed)
             if not native_success:
-                print("⚠️ [SavePLY] Using fallback extraction...")
+                print(" [SavePLY] Using fallback extraction...")
                 params = extract_splat_params(ply_data)
                 if params:
                     means, scales, quats, colors, opacities = params
@@ -1428,16 +1428,16 @@ class VNCCS_SavePLY:
                     # FIX: Convert RGB to SH for correct color rendering in splat viewers
                     # Viewer: Color = 0.5 + 0.282 * SH
                     # Inverse: SH = (Color - 0.5) / 0.282
-                    print("🎨 [SavePLY] Converting RGB to SH for Fallback Splats...")
+                    print(" [SavePLY] Converting RGB to SH for Fallback Splats...")
                     SH_C0 = 0.28209479177387814
                     colors = (colors - 0.5) / SH_C0
 
                     gs_path = self._get_unique_path(output_dir, filename, "gaussians", "ply")
                     save_gs_ply(gs_path, means, scales, quats, colors, opacities)
                     saved_files.append(gs_path)
-                    print(f"💾 [SavePLY] SUCCESS: Saved gaussians (Fallback): {os.path.basename(gs_path)} ({len(means)} pts)")
+                    print(f" [SavePLY] SUCCESS: Saved gaussians (Fallback): {os.path.basename(gs_path)} ({len(means)} pts)")
                 else:
-                    print("⚠️ [SavePLY] No splat data available after extraction")
+                    print(" [SavePLY] No splat data available after extraction")
 
         if save_pointcloud and ply_data.get("pts3d") is not None:
             pts3d = ply_data["pts3d"]
@@ -1474,7 +1474,7 @@ class VNCCS_SavePLY:
             # save_scene_ply(pc_path, means, colors) # OLD method (simple points)
             
             saved_files.append(pc_path)
-            print(f"💾 [SavePLY] SUCCESS: Saved pointcloud: {os.path.basename(pc_path)} ({len(means)} pts)")
+            print(f" [SavePLY] SUCCESS: Saved pointcloud: {os.path.basename(pc_path)} ({len(means)} pts)")
         
         if not saved_files:
             return ("",)
@@ -1587,7 +1587,7 @@ class VNCCS_BackgroundPreview:
         file_size = os.path.getsize(ply_path)
         file_size_mb = file_size / (1024 * 1024)
         
-        print(f"🔍 [VNCCS_BackgroundPreview] Preparing UI Data:")
+        print(f" [VNCCS_BackgroundPreview] Preparing UI Data:")
         print(f"   - Full Path: {ply_path}")
         print(f"   - Filename: {filename}")
         print(f"   - Subfolder: {subfolder}")
@@ -1604,7 +1604,7 @@ class VNCCS_BackgroundPreview:
                 video_path = os.path.abspath(video_files[0])
                 print(f"   - Found video: {os.path.basename(video_path)}")
         except Exception as e:
-            print(f"   ⚠️ Error finding video: {e}")
+            print(f"    Error finding video: {e}")
             
         ui_data = {
             "filename": [filename],
@@ -1621,7 +1621,7 @@ class VNCCS_BackgroundPreview:
         if intrinsics is not None:
             ui_data["intrinsics"] = [intrinsics]
         
-        print(f"✅ [VNCCS_BackgroundPreview] UI data ready. Returning to frontend.")
+        print(f" [VNCCS_BackgroundPreview] UI data ready. Returning to frontend.")
         return {"ui": ui_data, "result": (video_path, ply_path)}
 
 
@@ -1731,7 +1731,7 @@ class VNCCS_PLYSceneRenderer:
         """Load Gaussian parameters from PLY file (same format as viewer uses)."""
         from plyfile import PlyData
         
-        print(f"🔍 [PLYSceneRenderer] Loading PLY: {ply_path}")
+        print(f" [PLYSceneRenderer] Loading PLY: {ply_path}")
         ply = PlyData.read(ply_path)
         vertex = ply['vertex']
         
@@ -1752,7 +1752,7 @@ class VNCCS_PLYSceneRenderer:
         else:
             # Fallback for simple point clouds
             scales = np.ones((N, 3), dtype=np.float32) * 0.01
-            print("   - ⚠️ No scales found, using default 0.01")
+            print("   -  No scales found, using default 0.01")
         
         # Extract rotations
         if 'rot_0' in vertex.data.dtype.names:
@@ -1783,7 +1783,7 @@ class VNCCS_PLYSceneRenderer:
             print(f"   - Colors (RGB): min={colors.min():.3f}, max={colors.max():.3f}")
         else:
             colors = np.ones((N, 3), dtype=np.float32) * 0.5
-            print("   - ⚠️ No colors found, using gray")
+            print("   -  No colors found, using gray")
         
         # Extract opacities (stored as logit in PLY, need sigmoid)
         if 'opacity' in vertex.data.dtype.names:
@@ -1797,7 +1797,7 @@ class VNCCS_PLYSceneRenderer:
                 print(f"   - Opacities (direct): min={opacities.min():.3f}, max={opacities.max():.3f}")
         else:
             opacities = np.ones(N, dtype=np.float32) * 0.9
-            print("   - ⚠️ No opacities found, using 0.9")
+            print("   -  No opacities found, using 0.9")
         
         return means, scales, quats, colors, opacities
     
@@ -2068,7 +2068,7 @@ class VNCCS_PLYSceneRenderer:
         import time
         import os
         
-        print(f"🎥 [PLYSceneRenderer] RENDER START")
+        print(f" [PLYSceneRenderer] RENDER START")
         print(f"   - PLY File: {os.path.basename(ply_path)}")
         print(f"   - Coverage Mode: {coverage_mode}")
         print(f"   - Resolution: {width}x{height}, FOV: {fov}")
@@ -2115,7 +2115,7 @@ class VNCCS_PLYSceneRenderer:
         scales_t = torch.from_numpy(scales_np).to(device)
         quats_t = torch.from_numpy(quats_np).to(device) # Needed for gsplat
         
-        print(f"   📊 Gaussian Stats:")
+        print(f"    Gaussian Stats:")
         print(f"      - Points: {N:,}")
         print(f"      - Means:  avg={means_np.mean(axis=0)}, range=[{means_np.min(axis=0)}, {means_np.max(axis=0)}]")
         
@@ -2219,8 +2219,8 @@ class VNCCS_PLYSceneRenderer:
                         print(f"   ✓ [gsplat] Rendered {i + 1}/{len(all_poses)} views")
             
             except Exception as e:
-                print(f"❌ [VNCCS] gsplat rendering failed: {e}")
-                print("   ⚠️ Falling back to FastPLYRenderer...")
+                print(f" [VNCCS] gsplat rendering failed: {e}")
+                print("    Falling back to FastPLYRenderer...")
                 # Fallback logic below
                 use_gsplat = False # Trigger fallback
         
@@ -2229,7 +2229,7 @@ class VNCCS_PLYSceneRenderer:
         # --------------------------------------------------------------------
         if not use_gsplat or not GSPLAT_AVAILABLE:
             if use_gsplat:
-                 print("   ⚠️ gsplat requested but not available/failed. Using FastPLYRenderer.")
+                 print("    gsplat requested but not available/failed. Using FastPLYRenderer.")
             
             # Initialize Fast Renderer
             print(f"   - Initializing FastPLYRenderer...")
@@ -2268,7 +2268,7 @@ class VNCCS_PLYSceneRenderer:
         
         total_render_time = time.time() - render_start
         total_total_time = time.time() - start_time
-        print(f"✅ [PLYSceneRenderer] FINISHED")
+        print(f" [PLYSceneRenderer] FINISHED")
         print(f"   - Render time: {total_render_time:.2f}s ({total_render_time/len(rendered_images):.3f}s/view)")
         print(f"   - Total time:  {total_total_time:.2f}s")
         
@@ -2345,7 +2345,7 @@ class VNCCS_SplatRefiner:
             # Note: viewmats might not be on GPU yet, using raw_splats key as proxy
             V_render = raw_splats["rendered_extrinsics"][0].shape[0]
             if gt_images.shape[0] != V_render:
-                print(f"⚠️ [SplatRefiner] Batch mismatch! Ground Truth={gt_images.shape[0]}, Render={V_render}.")
+                print(f" [SplatRefiner] Batch mismatch! Ground Truth={gt_images.shape[0]}, Render={V_render}.")
                 if V_render % gt_images.shape[0] == 0:
                     repeat_val = V_render // gt_images.shape[0]
                     gt_images = gt_images.repeat_interleave(repeat_val, dim=0)
@@ -2380,10 +2380,10 @@ class VNCCS_SplatRefiner:
                 # pts3d is [1, S, H, W, 3]. Flatten to match dense splats
                 direct_means = raw_splats["pts3d"][0].detach().clone().reshape(-1, 3).to(device).float()
                 if direct_means.shape[0] == means.shape[0]:
-                    print(f"   🎯 [SplatRefiner] GEOMETRIC RESCUE: Re-syncing Gaussians to Direct 3D head.")
+                    print(f"    [SplatRefiner] GEOMETRIC RESCUE: Re-syncing Gaussians to Direct 3D head.")
                     means = direct_means.requires_grad_(optimize_means)
                 else:
-                    print(f"   ⚠️ [SplatRefiner] Rescue failed: shape mismatch. Pruned splats not supported for re-sync.")
+                    print(f"    [SplatRefiner] Rescue failed: shape mismatch. Pruned splats not supported for re-sync.")
             
             # 3. Setup Camera Data (Rendered Views)
             viewmats = raw_splats["rendered_extrinsics"][0].detach().clone().to(device).float() # [V, 4, 4]
@@ -2414,7 +2414,7 @@ class VNCCS_SplatRefiner:
                 param_groups.append({"params": [viewmats], "lr": lr * 2.0})   
             
             if not param_groups:
-                print("⚠️ [SplatRefiner] No parameters selected for optimization. Skipping.")
+                print(" [SplatRefiner] No parameters selected for optimization. Skipping.")
                 return (raw_splats, raw_splats["camera_poses"])
 
             optimizer = optim.Adam(param_groups)
@@ -2423,7 +2423,7 @@ class VNCCS_SplatRefiner:
             from src.models.models.rasterization import Rasterizer
             rasterizer = Rasterizer()
             
-            print(f"🔥 [SplatRefiner] Marble Stable Refinement V2 Start: {iterations} iterations")
+            print(f" [SplatRefiner] Marble Stable Refinement V2 Start: {iterations} iterations")
             print(f"   - Target: {B_views} views at {W}x{H}")
             print(f"   - Points: {len(means):,}")
             print(f"   - Features: SSIM+L1 Hybrid, Camera Opt={optimize_camera}, Strict Anchoring")
@@ -2534,7 +2534,7 @@ class VNCCS_SplatRefiner:
             "images": images.detach().cpu().permute(0, 3, 1, 2).unsqueeze(0) # Store as [1, V, 3, H, W]
         }
         
-        print("✅ [SplatRefiner] Refinement Complete.")
+        print(" [SplatRefiner] Refinement Complete.")
         
         return (refined_ply_data, final_poses)
 
@@ -2632,7 +2632,7 @@ class VNCCS_WorldMirror3D_Official:
         imgs_tensor = imgs_tensor.to(execution_device)
         
         B_batch, S, C_ch, H, W = imgs_tensor.shape
-        print(f"🚀 [Official] Running WorldMirror inference on {S} images ({H}x{W})...")
+        print(f" [Official] Running WorldMirror inference on {S} images ({H}x{W})...")
         
         # =====================================================================
         # Inference — EXACT replica of official infer.py
@@ -2647,7 +2647,7 @@ class VNCCS_WorldMirror3D_Official:
         
         try:
             if use_gsplat and not GSPLAT_AVAILABLE:
-                print("⚠️ gsplat requested but library not found. Falling back to Point Cloud.")
+                print(" gsplat requested but library not found. Falling back to Point Cloud.")
                 worldmirror.enable_gs = False
             else:
                 worldmirror.enable_gs = use_gsplat
@@ -2668,7 +2668,7 @@ class VNCCS_WorldMirror3D_Official:
                 worldmirror.to("cpu")
                 torch.cuda.empty_cache()
         
-        print("✅ [Official] Inference complete")
+        print(" [Official] Inference complete")
         
         # =====================================================================
         # Post-Processing — matching official infer.py filter logic

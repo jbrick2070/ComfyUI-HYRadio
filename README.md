@@ -1,140 +1,49 @@
-# ComfyUI HY-World 2.0 — WorldMirror 3D
+# ComfyUI HYRadio — The Standalone Master Package
 
-ComfyUI custom nodes for 3D scene reconstruction from a single image or panorama using [HY-World 2.0](https://huggingface.co/tencent/HY-World-2.0) (Tencent).
+ComfyUI custom nodes for end-to-end Cinematic Production from a single text block. This suite mathematically orchestrates **Local LLMs**, **Spatial Audio (TTS)**, and **HY-World 2.0 (Tencent) 3D Scene Reconstruction** natively, without requiring external modules.
 
 ---
 
-**If you find my project useful, please consider supporting it! I work on it completely on my own, and your support will allow me to continue maintaining it and adding even more cool features!**
+This is structurally a monolithic architecture incorporating:
+1. Native Python Batch Iteration logic for handling infinitely scaling, hardware-safe scenes.
+2. Synchronized `List Iterators` that automatically align Audio Output, 3D Mesh Output, and Cinematic Camera Math mapping arrays inside a 16GB VRAM limit.
 
-[![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20rtx%203090&emoji=☕&slug=MIUProject&button_colour=FFDD00&font_colour=000000&font_family=Comic&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/MIUProject)
----
+## System Architecture
+
+If you are just getting started, open `workflows/HYRadio-Full-Pipeline.json`. This massive JSON file encompasses everything:
+*   **The Orchestrator:** Feed it an array of strings (e.g. `["Scene 1: Mars", "Scene 2: Moon"]`) and the LLM breaks it down into autonomous TTS pipelines and Visual Gen mappings.
+*   **Audio Core:** Uses advanced `BarkTTS`, `Kokoro`, and `AudioEnhance` pipelines to bake stereo spatialized dialogue.
+*   **Visual Core:** The Slicer logic dynamically wraps the SD3.5 Panoramas into Python lists, spinning up and flushing the Tencent `WorldMirror` geometry engine securely between batches.
+*   **The AI Painter:** `WorldStereo` literally hallucinates (repaints) blind spots mathematically matched to your intrinsic/extrinsic arrays.
 
 ## Nodes
 
-**Category: VNCCS/3D**
-
 | Node | Description |
 |------|-------------|
-| `VNCCS_LoadWorldMirrorModel` | Download and load WorldMirror V1 model |
-| `VNCCS_WorldMirror3D` | V1 inference — outputs PLY point cloud, depth, normals, Gaussian splat |
-| `VNCCS_LoadWorldMirrorV2Model` | Download and load WorldMirror V2 model |
-| `VNCCS_WorldMirrorV2_3D` | V2 inference — outputs PLY point cloud, depth, normals, Gaussian splat |
-| `VNCCS_PLYSceneRenderer` | Render PLY scene from arbitrary camera angles |
-| `VNCCS_SplatRefiner` | Refine Gaussian splat data |
-| `VNCCS_DecomposePLYData` | Extract XYZ / RGB / normals / opacity tensors from PLY |
-| `VNCCS_SavePLY` | Save PLY file to disk |
-| `VNCCS_BackgroundPreview` | Preview 3D background renders |
-| `VNCCS_Equirect360ToViews` | Extract perspective views from equirectangular panorama |
-| `VNCCS_PanoramaMapper` | Map panorama to wall / floor / ceiling projections |
+| `HYRadio_LLMScriptWriter` | LLM Story Orchestrator & Screenplay generation |
+| `HYRadio_LLMDirector` | Automated Telemetry & Casting Logic |
+| `HYRadio_BarkTTS` | Spatialized Text-to-Speech Engine |
+| `HYRadio_SceneSequencer` | Assembles Audio chunks linearly |
+| `HYRadio_EpisodeAssembler` | Stitches final MP4/WAV and theme paths |
+| `HYWorld_EnvironmentPromptBuilder` | Visual Prompt LLM generator (VRAM Flushing) |
+| `VNCCS_WorldMirrorV2_3D` | 3D Splatting / Geometry Engine (Tencent) |
+| `HYWorld_BatchCLIPTextEncode` | Encodes iterative loops |
+| `VNCCS_Equirect360ToViews` | Slices Panoramas and converts them to sequential Python Batches |
 
 ---
 
 ## Installation
 
-### Via ComfyUI Manager (recommended)
+### Manual Clone (Preferred)
 
-Search for **HY-World 2.0** and click Install. `requirements.txt` and `install.py` run automatically.
-
-`install.py` will attempt to install `gsplat` — first from a pre-built wheel, then by compiling from source if no wheel is available for your platform.
-
-### Manual
+Because of the aggressive List Iteration and custom telemetry, ensure you use the latest version of this repository natively:
 
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/AHEKOT/ComfyUI_HYWorld2
+git clone https://github.com/jbrick2070/ComfyUI_HYWorld2.git
 cd ComfyUI_HYWorld2
 pip install -r requirements.txt
 python install.py
 ```
 
----
-
-## gsplat — Requirements for Compilation
-
-`gsplat` is a CUDA extension and cannot always be installed from a pre-built wheel. If your Python version, PyTorch version, or CUDA version is not covered by an official wheel, it must be compiled from source.
-
-The `install.py` script handles this automatically, but the following tools must be present on the system.
-
-### Required
-
-**1. CUDA Toolkit**
-
-Install the CUDA Toolkit version that matches your PyTorch build:
-
-```
-PyTorch CUDA version  →  Required CUDA Toolkit
-cu118                 →  CUDA 11.8
-cu121                 →  CUDA 12.1
-cu124                 →  CUDA 12.4
-```
-
-Download: https://developer.nvidia.com/cuda-toolkit-archive
-
-After installation, verify:
-```
-nvcc --version
-```
-
-**2. MSVC C++ Compiler (Windows only)**
-
-Install **Visual Studio Build Tools 2019 or 2022** with the **"Desktop development with C++"** workload.
-
-Download: https://visualstudio.microsoft.com/visual-cpp-build-tools/
-
-After installation, verify (from a Developer Command Prompt):
-```
-cl
-```
-
-If neither system MSVC nor a portable compiler is found, the build script will attempt to download a portable MSVC automatically (~600 MB).
-
-**3. Git**
-
-Required to clone the gsplat source repository if no pre-built wheel is available.
-
-```
-git --version
-```
-
-### Optional
-
-- **ninja** — speeds up compilation significantly. Installed automatically by the build script if missing.
-
-### Pre-built wheels (no compilation needed)
-
-If a wheel exists for your exact combination of Python / PyTorch / CUDA, the build script will use it instead of compiling. Check availability at:
-
-https://docs.gsplat.studio/whl/
-
-### Manual build
-
-To run the gsplat build independently:
-
-```bash
-# Windows
-scripts\pipinstall.bat
-
-# Any platform
-python scripts/build_gsplat.py
-```
-
----
-
-## Workflows
-
-Example workflows are in the `workflows/` directory:
-
-- `World-single-image.json` — single image to 3D scene
-- `World-Mirror-panorama.json` — equirectangular panorama to 3D scene
-
----
-
-## Requirements
-
-- Python 3.10+
-- PyTorch with CUDA
-- NVIDIA GPU (gsplat rendering requires CUDA)
-- Flash Attention — required for HY-World 2.0 model inference. Install via:
-  ```
-  pip install flash-attn --no-build-isolation
-  ```
+*Note: The `requirements.txt` is fully merged, meaning all TTS packages and 3D Splat algorithms compile simultaneously.*

@@ -59,7 +59,7 @@ try:
     )
     V2_UTILS_AVAILABLE = True
 except Exception as _e:
-    print(f"⚠️ [VNCCS V2] Could not import V2 utilities: {_e}")
+    print(f" [VNCCS V2] Could not import V2 utilities: {_e}")
     V2_UTILS_AVAILABLE = False
 
 _PATCH_SIZE = 14
@@ -122,20 +122,20 @@ class VNCCS_LoadWorldMirrorV2Model:
 
         # ── download if not cached ────────────────────────────────────────────
         if os.path.exists(weights) and os.path.exists(config):
-            print(f"✅ [V2] Cached model: {model_dir}")
+            print(f" [V2] Cached model: {model_dir}")
         else:
-            print(f"⬇️ [V2] Downloading → {model_dir}  (~5 GB)")
+            print(f" [V2] Downloading → {model_dir}  (~5 GB)")
             snapshot_download(
                 repo_id="tencent/HY-World-2.0",
                 allow_patterns=["HY-WorldMirror-2.0/**"],
                 local_dir=local_dir,
             )
-            print("✅ [V2] Download complete")
+            print(" [V2] Download complete")
 
         # ── load in float32 ───────────────────────────────────────────────────
         # Always load without enable_bf16 so weights arrive as float32 and
         # .to() is the standard nn.Module version. We apply precision below.
-        print(f"🔄 [V2] Loading model (device={device}, precision={precision})")
+        print(f" [V2] Loading model (device={device}, precision={precision})")
         model = WorldMirror.from_pretrained(model_dir)
         model = model.to(device)
 
@@ -183,7 +183,7 @@ class VNCCS_LoadWorldMirrorV2Model:
                 mod.to(torch.float32)
 
             quantize_(model, float8_weight_only())
-            print(f"✅ [V2] fp8 weight quantization applied")
+            print(f" [V2] fp8 weight quantization applied")
 
             # Still need the bf16 forward path for activations
             def _input_cast_hook(module, args):
@@ -206,7 +206,7 @@ class VNCCS_LoadWorldMirrorV2Model:
             model.to = model._bf16_to
 
         model.eval()
-        print("✅ [V2] Model ready")
+        print(" [V2] Model ready")
 
         return ({"model": model, "device": device},)
 
@@ -330,7 +330,7 @@ class VNCCS_WorldMirrorV2_3D:
                 from accelerate import cpu_offload
                 cpu_offload(worldmirror, execution_device=exec_dev)
             except Exception as e:
-                print(f"⚠️ [V2] model_cpu_offload failed ({e}), moving to GPU.")
+                print(f" [V2] model_cpu_offload failed ({e}), moving to GPU.")
                 worldmirror.to(exec_dev)
         else:
             if original_dev != exec_dev:
@@ -341,14 +341,14 @@ class VNCCS_WorldMirrorV2_3D:
         worldmirror.enable_gs = use_gsplat and GSPLAT_AVAILABLE
 
         try:
-            print(f"🚀 [V2] Inference: {B} images @ {target_size}px, gs={worldmirror.enable_gs}")
+            print(f" [V2] Inference: {B} images @ {target_size}px, gs={worldmirror.enable_gs}")
             with torch.no_grad():
                 predictions = worldmirror(
                     views      = views,
                     cond_flags = cond_flags,
                     is_inference = True,
                 )
-            print("✅ [V2] Inference complete")
+            print(" [V2] Inference complete")
         finally:
             worldmirror.enable_gs = original_gs
             if offload_scheme == "none" and original_dev.type == "cpu":
@@ -378,7 +378,7 @@ class VNCCS_WorldMirrorV2_3D:
                         sky_mask_np = np.stack(frames) > 0
                         print(f"[V2] Sky mask: ONNX ({S} frames)")
                     except Exception as e:
-                        print(f"⚠️ [V2] Sky segmentation failed: {e}")
+                        print(f" [V2] Sky segmentation failed: {e}")
 
         # ── 6. Geometric filter mask (V2 native) ─────────────────────────────
         pts_mask = gs_mask = None
@@ -481,7 +481,7 @@ def _get_skyseg_path():
                 path,
             )
         except Exception as e:
-            print(f"❌ [V2] skyseg.onnx download failed: {e}")
+            print(f" [V2] skyseg.onnx download failed: {e}")
     return path if os.path.exists(path) else None
 
 

@@ -1,0 +1,25 @@
+{
+  "fingerprint": "4d77121fb030",
+  "timestamp": "2026-04-18T22:44:44.544776",
+  "params": {
+    "episode_title": "Test",
+    "genre_flavor": "scifi",
+    "target_words": 420,
+    "num_characters": 2,
+    "open_close": false,
+    "self_critique": true,
+    "temperature": 0.85
+  },
+  "news_seed": "Webinar 4/29: NASA CSDA Program Vendor Focus- MDA Space",
+  "news_source": "NASA",
+  "cast": [],
+  "stats": {
+    "dialogue_lines": 0,
+    "sfx_cues": 0,
+    "scenes": 0,
+    "word_count": 0,
+    "est_minutes": 1,
+    "script_chars": 171
+  },
+  "guardrails_triggered": []
+}

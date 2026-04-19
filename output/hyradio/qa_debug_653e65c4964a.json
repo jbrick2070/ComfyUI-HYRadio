@@ -1,0 +1,29 @@
+{
+  "fingerprint": "653e65c4964a",
+  "timestamp": "2026-04-18T15:27:16.539791",
+  "params": {
+    "episode_title": "The Last Frequency",
+    "genre_flavor": "hard_sci_fi",
+    "target_words": 350,
+    "num_characters": 2,
+    "open_close": true,
+    "self_critique": true,
+    "temperature": 0.85
+  },
+  "news_seed": "Skin-deep microneedle sensor tracks drug clearance and reveals early kidney and liver dysfunction",
+  "news_source": "Health + Behavior - UCLA",
+  "cast": [
+    "ANNOUNCER",
+    "LEMMY",
+    "STANLEY BLACK"
+  ],
+  "stats": {
+    "dialogue_lines": 37,
+    "sfx_cues": 2,
+    "scenes": 1,
+    "word_count": 535,
+    "est_minutes": 3.8,
+    "script_chars": 6084
+  },
+  "guardrails_triggered": []
+}

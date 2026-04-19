@@ -1,0 +1,1790 @@
+{
+    "last_node_id": 2017,
+    "last_link_id": 10004,
+    "nodes": [
+        {
+            "id": 100,
+            "type": "CheckpointLoaderSimple",
+            "pos": [
+                50,
+                50
+            ],
+            "outputs": [
+                {
+                    "name": "MODEL",
+                    "type": "MODEL",
+                    "links": [
+                        1000
+                    ]
+                },
+                {
+                    "name": "CLIP",
+                    "type": "CLIP",
+                    "links": [
+                        1001,
+                        1002
+                    ]
+                },
+                {
+                    "name": "VAE",
+                    "type": "VAE",
+                    "links": [
+                        1003
+                    ]
+                }
+            ],
+            "widgets_values": [
+                "sd3.5_large_fp8_scaled.safetensors"
+            ],
+            "title": "1. SD3.5 Large (Model Bank)",
+            "color": "#332244",
+            "bgcolor": "#553355",
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "properties": {
+                "Node name for S&R": "CheckpointLoaderSimple"
+            },
+            "size": [
+                315,
+                130
+            ]
+        },
+        {
+            "id": 101,
+            "type": "EmptyLatentImage",
+            "pos": [
+                50,
+                200
+            ],
+            "outputs": [
+                {
+                    "name": "LATENT",
+                    "type": "LATENT",
+                    "links": [
+                        1004
+                    ]
+                }
+            ],
+            "widgets_values": [
+                2048,
+                1024,
+                1
+            ],
+            "title": "2. Panoramic Resolution (2:1 Ratio)",
+            "color": "#223344",
+            "bgcolor": "#334455",
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "properties": {
+                "Node name for S&R": "EmptyLatentImage"
+            },
+            "size": [
+                315,
+                130
+            ]
+        },
+        {
+            "id": 102,
+            "type": "HYWorld_BatchCLIPTextEncode",
+            "pos": [
+                400,
+                50
+            ],
+            "inputs": [
+                {
+                    "name": "clip",
+                    "type": "CLIP",
+                    "link": 1001
+                },
+                {
+                    "name": "text_list",
+                    "type": "STRING",
+                    "link": 1008
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "CONDITIONING",
+                    "type": "CONDITIONING",
+                    "links": [
+                        1005
+                    ]
+                }
+            ],
+            "widgets_values": [
+                ""
+            ],
+            "title": "3. Script Theme (Batched BatchCLIPTextEncode)",
+            "color": "#224422",
+            "bgcolor": "#335533",
+            "size": [
+                400,
+                200
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "properties": {
+                "Node name for S&R": "HYWorld_BatchCLIPTextEncode"
+            }
+        },
+        {
+            "id": 103,
+            "type": "CLIPTextEncode",
+            "pos": [
+                400,
+                300
+            ],
+            "inputs": [
+                {
+                    "name": "clip",
+                    "type": "CLIP",
+                    "link": 1002
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "CONDITIONING",
+                    "type": "CONDITIONING",
+                    "links": [
+                        1006
+                    ]
+                }
+            ],
+            "widgets_values": [
+                "watermark, text, borders, bad quality"
+            ],
+            "title": "4. Anti-Watermark (Negative Prompt)",
+            "color": "#442222",
+            "bgcolor": "#553333",
+            "size": [
+                400,
+                150
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "properties": {
+                "Node name for S&R": "CLIPTextEncode"
+            }
+        },
+        {
+            "id": 104,
+            "type": "KSampler",
+            "pos": [
+                850,
+                50
+            ],
+            "inputs": [
+                {
+                    "name": "model",
+                    "type": "MODEL",
+                    "link": 1000
+                },
+                {
+                    "name": "positive",
+                    "type": "CONDITIONING",
+                    "link": 1005
+                },
+                {
+                    "name": "negative",
+                    "type": "CONDITIONING",
+                    "link": 1006
+                },
+                {
+                    "name": "latent_image",
+                    "type": "LATENT",
+                    "link": 1004
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "LATENT",
+                    "type": "LATENT",
+                    "links": [
+                        1007
+                    ]
+                }
+            ],
+            "widgets_values": [
+                123456789,
+                "randomize",
+                30,
+                4.5,
+                "dpmpp_2m",
+                "karras",
+                1.0
+            ],
+            "title": "5. Render Core (KSampler)",
+            "color": "#443322",
+            "bgcolor": "#554433",
+            "size": [
+                315,
+                260
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "properties": {
+                "Node name for S&R": "KSampler"
+            }
+        },
+        {
+            "id": 105,
+            "type": "VAEDecode",
+            "pos": [
+                1200,
+                50
+            ],
+            "inputs": [
+                {
+                    "name": "samples",
+                    "type": "LATENT",
+                    "link": 1007
+                },
+                {
+                    "name": "vae",
+                    "type": "VAE",
+                    "link": 1003
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": [
+                        2000,
+                        4001,
+                        4002
+                    ]
+                }
+            ],
+            "title": "6. Final Output (VAE Decode)",
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "properties": {
+                "Node name for S&R": "VAEDecode"
+            },
+            "size": [
+                315,
+                130
+            ]
+        },
+        {
+            "id": 106,
+            "type": "HYWorld_EnvironmentPromptBuilder",
+            "pos": [
+                50,
+                -200
+            ],
+            "size": [
+                315,
+                200
+            ],
+            "title": "0. Story Orchestrator (VRAM Flusher)",
+            "color": "#440000",
+            "bgcolor": "#660000",
+            "outputs": [
+                {
+                    "name": "environmental_prompt",
+                    "type": "STRING",
+                    "links": [
+                        1008
+                    ]
+                },
+                {
+                    "name": "cinematic_directives",
+                    "type": "STRING_LIST",
+                    "links": [
+                        5001
+                    ],
+                    "slot_index": 1
+                }
+            ],
+            "widgets_values": [
+                "Scene 2: High plains, desolate wind...",
+                60
+            ],
+            "inputs": [
+                {
+                    "name": "scene_log_json",
+                    "type": "STRING",
+                    "link": 5026
+                }
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "properties": {
+                "Node name for S&R": "HYWorld_EnvironmentPromptBuilder"
+            }
+        },
+        {
+            "id": 107,
+            "type": "SaveImage",
+            "pos": [
+                1500,
+                50
+            ],
+            "inputs": [
+                {
+                    "name": "images",
+                    "type": "IMAGE",
+                    "link": 2000
+                }
+            ],
+            "outputs": [],
+            "widgets_values": [
+                "HYRadio_Panorama_Batch"
+            ],
+            "title": "6. Save Panorama Batch",
+            "color": "#114444",
+            "bgcolor": "#225555",
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "properties": {
+                "Node name for S&R": "SaveImage"
+            },
+            "size": [
+                315,
+                130
+            ]
+        },
+        {
+            "id": 13,
+            "type": "VNCCS_LoadWorldMirrorV2Model",
+            "pos": [
+                1260,
+                7080
+            ],
+            "size": [
+                310,
+                90
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "model",
+                    "type": "WORLDMIRROR_MODEL",
+                    "links": [
+                        3014
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "VNCCS_LoadWorldMirrorV2Model"
+            },
+            "widgets_values": [
+                "cuda",
+                "bf16"
+            ]
+        },
+        {
+            "id": 14,
+            "type": "VNCCS_Equirect360ToViews",
+            "pos": [
+                1260,
+                7280
+            ],
+            "size": [
+                300,
+                320
+            ],
+            "flags": {},
+            "order": 4,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "panorama",
+                    "type": "IMAGE",
+                    "link": 4002
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "views",
+                    "type": "IMAGE",
+                    "links": [
+                        3015
+                    ]
+                },
+                {
+                    "name": "intrinsics",
+                    "type": "TENSOR",
+                    "links": [
+                        3016
+                    ]
+                },
+                {
+                    "name": "camera_poses",
+                    "type": "TENSOR",
+                    "links": [
+                        3017
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "VNCCS_Equirect360ToViews",
+                "cnr_id": "vnccs",
+                "ver": "87443c3eda651317f39a8be7fd40a1c868565134"
+            },
+            "widgets_values": [
+                "Standard (518)",
+                90,
+                45,
+                "0",
+                518,
+                true,
+                false,
+                false,
+                2.2,
+                0
+            ]
+        },
+        {
+            "id": 15,
+            "type": "VNCCS_WorldMirrorV2_3D",
+            "pos": [
+                1700,
+                7110
+            ],
+            "size": [
+                350,
+                330
+            ],
+            "flags": {},
+            "order": 6,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "model",
+                    "type": "WORLDMIRROR_MODEL",
+                    "link": 3014
+                },
+                {
+                    "name": "images",
+                    "type": "IMAGE",
+                    "link": 3015
+                },
+                {
+                    "name": "camera_intrinsics",
+                    "shape": 7,
+                    "type": "TENSOR",
+                    "link": 3016
+                },
+                {
+                    "name": "camera_poses",
+                    "shape": 7,
+                    "type": "TENSOR",
+                    "link": 3017
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "ply_data",
+                    "type": "PLY_DATA",
+                    "links": [
+                        3013,
+                        10001
+                    ]
+                },
+                {
+                    "name": "depth_maps",
+                    "type": "IMAGE",
+                    "links": []
+                },
+                {
+                    "name": "normal_maps",
+                    "type": "IMAGE",
+                    "links": []
+                },
+                {
+                    "name": "camera_poses",
+                    "type": "TENSOR",
+                    "links": []
+                },
+                {
+                    "name": "camera_intrinsics",
+                    "type": "TENSOR",
+                    "links": []
+                },
+                {
+                    "name": "raw_splats",
+                    "type": "VNCCS_SPLAT",
+                    "links": []
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "VNCCS_WorldMirrorV2_3D"
+            },
+            "widgets_values": [
+                true,
+                518,
+                "sequential_cpu_offload",
+                10,
+                false,
+                true,
+                1,
+                0.03
+            ]
+        },
+        {
+            "id": 12,
+            "type": "VNCCS_SavePLY",
+            "pos": [
+                2300,
+                7110
+            ],
+            "size": [
+                270,
+                180
+            ],
+            "flags": {},
+            "order": 8,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "ply_data",
+                    "type": "PLY_DATA",
+                    "link": 3013
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "filepath",
+                    "type": "STRING",
+                    "links": [
+                        3018
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "VNCCS_SavePLY",
+                "cnr_id": "vnccs",
+                "ver": "87443c3eda651317f39a8be7fd40a1c868565134"
+            },
+            "widgets_values": [
+                "HYRadio_Scene_Mesh",
+                false,
+                true,
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "id": 16,
+            "type": "VNCCS_BackgroundPreview",
+            "pos": [
+                2280,
+                7380
+            ],
+            "size": [
+                1160,
+                690
+            ],
+            "flags": {},
+            "order": 10,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "ply_path",
+                    "shape": 7,
+                    "type": "STRING",
+                    "link": 3018
+                },
+                {
+                    "name": "extrinsics",
+                    "shape": 7,
+                    "type": "EXTRINSICS",
+                    "link": 5004
+                },
+                {
+                    "name": "intrinsics",
+                    "shape": 7,
+                    "type": "INTRINSICS",
+                    "link": 5005
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "video_path",
+                    "type": "STRING",
+                    "links": []
+                },
+                {
+                    "name": "ply_path",
+                    "type": "STRING",
+                    "links": []
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "VNCCS_BackgroundPreview",
+                "cnr_id": "vnccs",
+                "ver": "87443c3eda651317f39a8be7fd40a1c868565134"
+            },
+            "widgets_values": [
+                "1024",
+                ""
+            ]
+        },
+        {
+            "id": 201,
+            "type": "HYWorld_CinematicTranslator",
+            "pos": [
+                1400,
+                200
+            ],
+            "size": [
+                315,
+                130
+            ],
+            "flags": {},
+            "order": 1,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "cinematic_directives",
+                    "type": "STRING_LIST",
+                    "link": 5001
+                }
+            ],
+            "widgets_values": [
+                0,
+                24,
+                512,
+                512,
+                "forward"
+            ],
+            "outputs": [
+                {
+                    "name": "trajectory",
+                    "type": "CAMERA_TRAJECTORY",
+                    "links": [
+                        10002
+                    ]
+                },
+                {
+                    "name": "extrinsics",
+                    "type": "EXTRINSICS",
+                    "links": [
+                        5002,
+                        5004
+                    ]
+                },
+                {
+                    "name": "intrinsics",
+                    "type": "INTRINSICS",
+                    "links": [
+                        5003,
+                        5005
+                    ]
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "HYWorld_CinematicTranslator"
+            }
+        },
+        {
+            "id": 2001,
+            "type": "HYRadio_LLMScriptWriter",
+            "pos": [
+                -1450,
+                700
+            ],
+            "size": [
+                400,
+                320
+            ],
+            "title": "1. LLM Story Writer",
+            "properties": {
+                "Node name for S&R": "HYRadio_LLMScriptWriter"
+            },
+            "widgets_values": [
+                "",
+                "hard_sci_fi",
+                700,
+                4,
+                "mistralai/Mistral-Nemo-Instruct-2407",
+                "",
+                true,
+                true,
+                true,
+                "short (3 acts)",
+                "tense claustrophobic",
+                "balanced",
+                true,
+                "Pro (Ultra Quality)"
+            ],
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "script_text",
+                    "type": "STRING",
+                    "links": [
+                        5006
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "script_json",
+                    "type": "STRING",
+                    "links": [
+                        5007,
+                        5011,
+                        5015,
+                        5018,
+                        5023,
+                        5026
+                    ],
+                    "slot_index": 1
+                },
+                {
+                    "name": "news_used",
+                    "type": "STRING",
+                    "links": [
+                        5017
+                    ],
+                    "slot_index": 2
+                },
+                {
+                    "name": "estimated_minutes",
+                    "type": "INT",
+                    "links": [],
+                    "slot_index": 3
+                }
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "color": "#2B3C5A",
+            "bgcolor": "#1C273C"
+        },
+        {
+            "id": 2002,
+            "type": "HYRadio_LLMDirector",
+            "pos": [
+                -1020,
+                700
+            ],
+            "size": [
+                400,
+                280
+            ],
+            "title": "2. LLM Director",
+            "properties": {
+                "Node name for S&R": "HYRadio_LLMDirector"
+            },
+            "widgets_values": [
+                "",
+                0.4,
+                "bark (standard 8GB)",
+                "subtle",
+                "Pro (Ultra Quality)"
+            ],
+            "inputs": [
+                {
+                    "name": "script_text",
+                    "type": "STRING",
+                    "link": 5006,
+                    "widget": {
+                        "name": "script_text"
+                    }
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "production_plan_json",
+                    "type": "STRING",
+                    "links": [
+                        5008,
+                        5012,
+                        5016,
+                        5020,
+                        5025
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "voice_map_json",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 1
+                },
+                {
+                    "name": "sfx_plan_json",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 2
+                },
+                {
+                    "name": "music_plan_json",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 3
+                }
+            ],
+            "flags": {},
+            "order": 1,
+            "mode": 0,
+            "color": "#2B3C5A",
+            "bgcolor": "#1C273C"
+        },
+        {
+            "id": 2003,
+            "type": "HYRadio_SceneSequencer",
+            "pos": [
+                -550,
+                700
+            ],
+            "size": [
+                400,
+                300
+            ],
+            "title": "4. Scene Builder",
+            "properties": {
+                "Node name for S&R": "HYRadio_SceneSequencer"
+            },
+            "widgets_values": [
+                "[]",
+                "{}",
+                0,
+                999,
+                "",
+                "bark",
+                0.0,
+                0.0
+            ],
+            "inputs": [
+                {
+                    "name": "script_json",
+                    "type": "STRING",
+                    "link": 5007,
+                    "widget": {
+                        "name": "script_json"
+                    }
+                },
+                {
+                    "name": "production_plan_json",
+                    "type": "STRING",
+                    "link": 5008,
+                    "widget": {
+                        "name": "production_plan_json"
+                    }
+                },
+                {
+                    "name": "tts_audio_clips",
+                    "type": "AUDIO",
+                    "link": 5013
+                },
+                {
+                    "name": "announcer_audio_clips",
+                    "type": "AUDIO",
+                    "link": 5019,
+                    "shape": 7
+                },
+                {
+                    "name": "sfx_audio_clips",
+                    "type": "AUDIO",
+                    "link": 5024
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "scene_audio",
+                    "type": "AUDIO",
+                    "links": [
+                        5009
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "render_log",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 1
+                },
+                {
+                    "name": "scene_manifest_json",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 2
+                }
+            ],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "color": "#4A2B4D",
+            "bgcolor": "#301C32"
+        },
+        {
+            "id": 2004,
+            "type": "HYRadio_AudioEnhance",
+            "pos": [
+                450,
+                700
+            ],
+            "size": [
+                380,
+                340
+            ],
+            "title": "5. Make It Sound Awesome",
+            "properties": {
+                "Node name for S&R": "HYRadio_AudioEnhance"
+            },
+            "widgets_values": [
+                48000,
+                0.3,
+                0.8,
+                0.15,
+                16000.0,
+                "subtle",
+                -1.0
+            ],
+            "inputs": [
+                {
+                    "name": "audio",
+                    "type": "AUDIO",
+                    "link": 5009
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "enhanced_audio",
+                    "type": "AUDIO",
+                    "links": [
+                        5010
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "flags": {},
+            "order": 3,
+            "mode": 0,
+            "color": "#4A2B4D",
+            "bgcolor": "#301C32"
+        },
+        {
+            "id": 2007,
+            "type": "HYRadio_EpisodeAssembler",
+            "pos": [
+                -50,
+                700
+            ],
+            "size": [
+                420,
+                350
+            ],
+            "title": "6. Glue Everything Together",
+            "properties": {
+                "Node name for S&R": "HYRadio_EpisodeAssembler"
+            },
+            "widgets_values": [
+                "",
+                10.0,
+                8.0,
+                500
+            ],
+            "inputs": [
+                {
+                    "name": "scene_audio",
+                    "type": "AUDIO",
+                    "link": 5010
+                },
+                {
+                    "name": "opening_theme_audio",
+                    "type": "AUDIO",
+                    "link": 5021
+                },
+                {
+                    "name": "closing_theme_audio",
+                    "type": "AUDIO",
+                    "link": 5022
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "episode_audio",
+                    "type": "AUDIO",
+                    "links": [
+                        5014
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "output_path",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 1
+                },
+                {
+                    "name": "episode_info",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 2
+                }
+            ],
+            "flags": {},
+            "order": 6,
+            "mode": 0,
+            "color": "#4A2B4D",
+            "bgcolor": "#301C32"
+        },
+        {
+            "id": 2011,
+            "type": "HYRadio_BatchBarkGenerator",
+            "pos": [
+                -1020,
+                1100
+            ],
+            "size": [
+                400,
+                200
+            ],
+            "title": "3. Voice Maker Machine",
+            "properties": {
+                "Node name for S&R": "HYRadio_BatchBarkGenerator"
+            },
+            "widgets_values": [
+                "[]",
+                "{}",
+                0.7
+            ],
+            "inputs": [
+                {
+                    "name": "script_json",
+                    "type": "STRING",
+                    "link": 5011,
+                    "widget": {
+                        "name": "script_json"
+                    }
+                },
+                {
+                    "name": "production_plan_json",
+                    "type": "STRING",
+                    "link": 5012,
+                    "widget": {
+                        "name": "production_plan_json"
+                    }
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "tts_audio_clips",
+                    "type": "AUDIO",
+                    "links": [
+                        5013
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "batch_log",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 1
+                }
+            ],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "color": "#234035",
+            "bgcolor": "#162821"
+        },
+        {
+            "id": 2012,
+            "type": "HYRadio_SignalLostVideo",
+            "pos": [
+                950,
+                700
+            ],
+            "size": [
+                400,
+                280
+            ],
+            "title": "7. Make the Final Video",
+            "properties": {
+                "Node name for S&R": "HYRadio_SignalLostVideo"
+            },
+            "widgets_values": [
+                "[]",
+                "{}",
+                "[]",
+                24,
+                "1920x1080",
+                ""
+            ],
+            "inputs": [
+                {
+                    "name": "audio",
+                    "type": "AUDIO",
+                    "link": 5014
+                },
+                {
+                    "name": "script_json",
+                    "type": "STRING",
+                    "link": 5015,
+                    "widget": {
+                        "name": "script_json"
+                    }
+                },
+                {
+                    "name": "production_plan_json",
+                    "type": "STRING",
+                    "link": 5016,
+                    "widget": {
+                        "name": "production_plan_json"
+                    }
+                },
+                {
+                    "name": "news_used",
+                    "type": "STRING",
+                    "link": 5017,
+                    "widget": {
+                        "name": "news_used"
+                    }
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "video_path",
+                    "type": "STRING",
+                    "links": [
+                        10004
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "flags": {},
+            "order": 10,
+            "mode": 0,
+            "color": "#5B3A29",
+            "bgcolor": "#3C261B"
+        },
+        {
+            "id": 2013,
+            "type": "HYRadio_KokoroAnnouncer",
+            "pos": [
+                -1020,
+                1450
+            ],
+            "size": [
+                360,
+                130
+            ],
+            "flags": {},
+            "order": 3,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "script_json",
+                    "type": "STRING",
+                    "link": 5018,
+                    "widget": {
+                        "name": "script_json"
+                    }
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "announcer_audio_clips",
+                    "type": "AUDIO",
+                    "links": [
+                        5019
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "render_log",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 1
+                },
+                {
+                    "name": "chosen_voice",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 2
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "HYRadio_KokoroAnnouncer"
+            },
+            "widgets_values": [
+                "[]",
+                "",
+                "random",
+                0.95
+            ],
+            "color": "#234035",
+            "bgcolor": "#162821"
+        },
+        {
+            "id": 2014,
+            "type": "HYRadio_MusicGenTheme",
+            "pos": [
+                -550,
+                1100
+            ],
+            "size": [
+                380,
+                160
+            ],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "production_plan_json",
+                    "type": "STRING",
+                    "link": 5020,
+                    "widget": {
+                        "name": "production_plan_json"
+                    }
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "opening_audio",
+                    "type": "AUDIO",
+                    "links": [
+                        5021
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "closing_audio",
+                    "type": "AUDIO",
+                    "links": [
+                        5022
+                    ],
+                    "slot_index": 1
+                },
+                {
+                    "name": "interstitial_audio",
+                    "type": "AUDIO",
+                    "links": [],
+                    "slot_index": 2
+                },
+                {
+                    "name": "render_log",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 3
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "HYRadio_MusicGenTheme"
+            },
+            "widgets_values": [
+                "{}",
+                "",
+                "facebook/musicgen-medium",
+                3.0
+            ],
+            "color": "#234035",
+            "bgcolor": "#162821"
+        },
+        {
+            "id": 2015,
+            "type": "HYRadio_BatchAudioGenGenerator",
+            "pos": [
+                -1020,
+                1300
+            ],
+            "size": [
+                400,
+                160
+            ],
+            "title": "3c. SFX Maker Machine (AudioGen)",
+            "properties": {
+                "Node name for S&R": "HYRadio_BatchAudioGenGenerator"
+            },
+            "widgets_values": [
+                "[]",
+                "{}",
+                "",
+                "facebook/audiogen-medium",
+                3.0,
+                3.0
+            ],
+            "inputs": [
+                {
+                    "name": "script_json",
+                    "type": "STRING",
+                    "link": 5023,
+                    "widget": {
+                        "name": "script_json"
+                    }
+                },
+                {
+                    "name": "production_plan_json",
+                    "type": "STRING",
+                    "link": 5025,
+                    "widget": {
+                        "name": "production_plan_json"
+                    }
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "sfx_audio_clips",
+                    "type": "AUDIO",
+                    "links": [
+                        5024
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "batch_log",
+                    "type": "STRING",
+                    "links": [],
+                    "slot_index": 1
+                }
+            ],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "color": "#234035",
+            "bgcolor": "#162821"
+        },
+        {
+            "id": 2016,
+            "type": "HYRadio_CinematicRenderer",
+            "pos": [
+                1400,
+                200
+            ],
+            "size": [
+                315,
+                130
+            ],
+            "flags": {},
+            "order": 24,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "ply_data",
+                    "type": "PLY_DATA",
+                    "link": 10001
+                },
+                {
+                    "name": "trajectory",
+                    "type": "CAMERA_TRAJECTORY",
+                    "link": 10002
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "HYRadio_CinematicRenderer"
+            },
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "",
+                    "links": [
+                        10003
+                    ]
+                }
+            ]
+        },
+        {
+            "id": 2017,
+            "type": "HYRadio_VideoCompositor",
+            "pos": [
+                1800,
+                200
+            ],
+            "size": [
+                315,
+                130
+            ],
+            "flags": {},
+            "order": 25,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "cinematic_frames",
+                    "type": "IMAGE",
+                    "link": 10003
+                },
+                {
+                    "name": "base_video_path",
+                    "type": "STRING",
+                    "link": 10004
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "HYRadio_VideoCompositor"
+            }
+        }
+    ],
+    "links": [
+        [
+            1000,
+            100,
+            0,
+            104,
+            0,
+            "MODEL"
+        ],
+        [
+            1001,
+            100,
+            1,
+            102,
+            0,
+            "CLIP"
+        ],
+        [
+            1002,
+            100,
+            1,
+            103,
+            0,
+            "CLIP"
+        ],
+        [
+            1003,
+            100,
+            2,
+            105,
+            1,
+            "VAE"
+        ],
+        [
+            1004,
+            101,
+            0,
+            104,
+            3,
+            "LATENT"
+        ],
+        [
+            1005,
+            102,
+            0,
+            104,
+            1,
+            "CONDITIONING"
+        ],
+        [
+            1006,
+            103,
+            0,
+            104,
+            2,
+            "CONDITIONING"
+        ],
+        [
+            1007,
+            104,
+            0,
+            105,
+            0,
+            "LATENT"
+        ],
+        [
+            1008,
+            106,
+            0,
+            102,
+            1,
+            "STRING_LIST"
+        ],
+        [
+            2000,
+            105,
+            0,
+            107,
+            0,
+            "IMAGE"
+        ],
+        [
+            3013,
+            15,
+            0,
+            12,
+            0,
+            "PLY_DATA"
+        ],
+        [
+            3014,
+            13,
+            0,
+            15,
+            0,
+            "WORLDMIRROR_MODEL"
+        ],
+        [
+            3015,
+            14,
+            0,
+            15,
+            1,
+            "IMAGE"
+        ],
+        [
+            3016,
+            14,
+            1,
+            15,
+            2,
+            "TENSOR"
+        ],
+        [
+            3017,
+            14,
+            2,
+            15,
+            3,
+            "TENSOR"
+        ],
+        [
+            3018,
+            12,
+            0,
+            16,
+            0,
+            "STRING"
+        ],
+        [
+            4002,
+            105,
+            0,
+            14,
+            0,
+            "IMAGE"
+        ],
+        [
+            5001,
+            106,
+            1,
+            201,
+            0,
+            "STRING_LIST"
+        ],
+        [
+            5004,
+            201,
+            1,
+            16,
+            1,
+            "EXTRINSICS"
+        ],
+        [
+            5005,
+            201,
+            2,
+            16,
+            2,
+            "INTRINSICS"
+        ],
+        [
+            5006,
+            2001,
+            0,
+            2002,
+            0,
+            "STRING"
+        ],
+        [
+            5007,
+            2001,
+            1,
+            2003,
+            0,
+            "STRING"
+        ],
+        [
+            5008,
+            2002,
+            0,
+            2003,
+            1,
+            "STRING"
+        ],
+        [
+            5009,
+            2003,
+            0,
+            2004,
+            0,
+            "AUDIO"
+        ],
+        [
+            5010,
+            2004,
+            0,
+            2007,
+            0,
+            "AUDIO"
+        ],
+        [
+            5011,
+            2001,
+            1,
+            2011,
+            0,
+            "STRING"
+        ],
+        [
+            5012,
+            2002,
+            0,
+            2011,
+            1,
+            "STRING"
+        ],
+        [
+            5013,
+            2011,
+            0,
+            2003,
+            2,
+            "AUDIO"
+        ],
+        [
+            5014,
+            2007,
+            0,
+            2012,
+            0,
+            "AUDIO"
+        ],
+        [
+            5015,
+            2001,
+            1,
+            2012,
+            1,
+            "STRING"
+        ],
+        [
+            5016,
+            2002,
+            0,
+            2012,
+            2,
+            "STRING"
+        ],
+        [
+            5017,
+            2001,
+            2,
+            2012,
+            3,
+            "STRING"
+        ],
+        [
+            5018,
+            2001,
+            1,
+            2013,
+            0,
+            "STRING"
+        ],
+        [
+            5019,
+            2013,
+            0,
+            2003,
+            3,
+            "AUDIO"
+        ],
+        [
+            5020,
+            2002,
+            0,
+            2014,
+            0,
+            "STRING"
+        ],
+        [
+            5021,
+            2014,
+            0,
+            2007,
+            1,
+            "AUDIO"
+        ],
+        [
+            5022,
+            2014,
+            1,
+            2007,
+            2,
+            "AUDIO"
+        ],
+        [
+            5023,
+            2001,
+            1,
+            2015,
+            0,
+            "STRING"
+        ],
+        [
+            5024,
+            2015,
+            0,
+            2003,
+            4,
+            "AUDIO"
+        ],
+        [
+            5025,
+            2002,
+            0,
+            2015,
+            1,
+            "STRING"
+        ],
+        [
+            5026,
+            2001,
+            1,
+            106,
+            0,
+            "STRING"
+        ],
+        [
+            10001,
+            15,
+            0,
+            2016,
+            0,
+            "PLY_DATA"
+        ],
+        [
+            10002,
+            201,
+            0,
+            2016,
+            1,
+            "CAMERA_TRAJECTORY"
+        ],
+        [
+            10003,
+            2016,
+            0,
+            2017,
+            0,
+            "IMAGE"
+        ],
+        [
+            10004,
+            2012,
+            0,
+            2017,
+            1,
+            "STRING"
+        ]
+    ],
+    "version": 0.4
+}

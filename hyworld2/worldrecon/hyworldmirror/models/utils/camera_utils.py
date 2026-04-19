@@ -10,7 +10,10 @@ def camera_params_to_vector(
     # intr: (..., 3, 3): Intrinsics
     # image_hw: (h, w)
     R = ext[..., :3, :3]           # Rotation part
-    t = ext[..., :3, 3]            # Translation part
+    if ext.shape[-1] == 3:
+        t = torch.zeros(ext.shape[:-2] + (3,), device=ext.device, dtype=ext.dtype)
+    else:
+        t = ext[..., :3, 3]            # Translation part
     q = rotmat_to_quat(R)  # Quaternion (wxyz)
     h, w = image_hw
     fov_v = 2.0 * torch.atan(h * 0.5 / intr[..., 1, 1])  # Vertical FOV
@@ -26,7 +29,10 @@ def extrinsics_to_vector(ext):
     """Convert extrinsics to [t, q] vector."""
     # ext: (..., 3, 4)
     R = ext[..., :3, :3]
-    t = ext[..., :3, 3]
+    if ext.shape[-1] == 3:
+        t = torch.zeros(ext.shape[:-2] + (3,), device=ext.device, dtype=ext.dtype)
+    else:
+        t = ext[..., :3, 3]
     q = rotmat_to_quat(R)
     vec = torch.stack([
         t[..., 0], t[..., 1], t[..., 2],

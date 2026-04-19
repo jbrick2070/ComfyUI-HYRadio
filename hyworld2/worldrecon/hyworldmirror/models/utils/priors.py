@@ -14,8 +14,18 @@ def normalize_poses(extrinsics, padding=0.1, return_stats=False):
         normalized_extrinsics: Normalized extrinsic matrices
         (optional) stats: Dictionary containing scale and translation information
     """
-    B, S, _, _ = extrinsics.shape
+    B, S, C, D = extrinsics.shape
     device = extrinsics.device
+    
+    if D == 3:
+        # Pure rotation matrix (3x3), no translation to normalize
+        if return_stats:
+            stats = {
+                'scale_factors': torch.ones(B, device=device),
+                'translation_vectors': torch.zeros(B, 3, device=device)
+            }
+            return extrinsics.clone(), stats
+        return extrinsics.clone()
     
     # Check input validity and handle NaN/Inf values
     for i in range(B):
