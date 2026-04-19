@@ -97,13 +97,20 @@ class HYRadio_CinematicRenderer:
         
         W = int(scene_traj.get("width", 512) * scale)
         H = int(scene_traj.get("height", 512) * scale)
-        
-        means = splats["means"].to(device)
-        quats = splats["quats"].to(device)
-        scales = splats["scales"].to(device)
-        opacities = splats["opacities"].to(device)
-        shs = splats["shs"].to(device) if "shs" in splats else None
-        colors = splats["colors"].to(device) if "colors" in splats else None
+        def force_unbatched(t):
+            if t is None: return None
+            # Strip PyTorch batch dimension if VNCCS leaked it [1, N, ...]
+            # E.g. [1, N, 3] -> [N, 3]. Note: shs is [N, K, 3], so N != 1.
+            if t.dim() >= 2 and t.shape[0] == 1:
+                return t.squeeze(0)
+            return t
+
+        means = force_unbatched(splats["means"]).to(device)
+        quats = force_unbatched(splats["quats"]).to(device)
+        scales = force_unbatched(splats["scales"]).to(device)
+        opacities = force_unbatched(splats["opacities"]).to(device)
+        shs = force_unbatched(splats["shs"]).to(device) if "shs" in splats else None
+        colors = force_unbatched(splats["colors"]).to(device) if "colors" in splats else None
         
         import inspect
         from gsplat import rasterization
