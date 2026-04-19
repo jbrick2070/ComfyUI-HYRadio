@@ -105,13 +105,21 @@ class HYRadio_CinematicRenderer:
         shs = splats["shs"].to(device) if "shs" in splats else None
         colors = splats["colors"].to(device) if "colors" in splats else None
         
-        # If colors provided but not SHs, we convert colors to SH degree 0
+        import inspect
+        from gsplat import rasterization
+        sig = inspect.signature(rasterization).parameters
+        is_gsplat_15 = "sh_degree" in sig
+        
+        # In 1.5.x, we can pass native RGB straight as colors if shs is missing.
+        # In <= 1.4, we ALWAYS need shs.
         if shs is None and colors is not None:
-            # SH0 = (RGB - 0.5) / 0.28209...
-            shs = (colors - 0.5) / 0.28209479177387814
-            # gsplat expects [N, 1, 3] for shs (degree 0) or [N, K, 3]
-            if len(shs.shape) == 2:
-                shs = shs.unsqueeze(1)
+            if not is_gsplat_15:
+                shs = (colors - 0.5) / 0.28209479177387814
+                if len(shs.shape) == 2:
+                    shs = shs.unsqueeze(1)
+            else:
+                # 1.5.x handles native RGB perfectly. We leave shs=None.
+                pass
                 
         # Hoisted out of loop (BS.8)
         opacities_in = opacities.squeeze(-1) if len(opacities.shape)>1 else opacities
@@ -133,60 +141,62 @@ class HYRadio_CinematicRenderer:
         
         print(f"[HYRadio_CinematicRenderer] Rendering {total_frames} frames via gsplat @ {W}x{H}...")
         
-        for fi in range(total_frames):
-            c2w = c2ws[fi]
-            K = intrs[fi]
+        # Invert all cameras to w2c simultaneously
+        w2cs = torch.linalg.inv(c2ws)
+        
+        # Set chunk size to prevent VRAM overflow on output frames (e.g. 32 frames * 1080p * 3 = ~800MB)
+        chunk_size = 32 if is_gsplat_15 else 1 
+        
+        for start_idx in range(0, total_frames, chunk_size):
+            end_idx = min(start_idx + chunk_size, total_frames)
             
-            # W2C is inverse of C2W
-            w2c = torch.linalg.inv(c2w)
-            viewmat = w2c.unsqueeze(0) # [1, 4, 4]
-            K_in = K.unsqueeze(0)      # [1, 3, 3]
+            viewmat_chunk = w2cs[start_idx:end_idx] # [C, 4, 4]
+            K_chunk = intrs[start_idx:end_idx]      # [C, 3, 3]
             
             try:
-                # Resolve gsplat 1.4 vs 1.5+ signature dynamically
-                import inspect
-                from gsplat import rasterization
                 raster_kwargs = {
                     "means": means,
                     "quats": quats,
                     "scales": scales,
                     "opacities": opacities_in,
-                    "viewmats": viewmat,
-                    "Ks": K_in,
+                    "viewmats": viewmat_chunk,
+                    "Ks": K_chunk,
                     "width": W,
                     "height": H,
-                    "backgrounds": bg_tensor.unsqueeze(0)
+                    "backgrounds": bg_tensor.unsqueeze(0).expand(viewmat_chunk.shape[0], -1) if is_gsplat_15 else bg_tensor.unsqueeze(0)
                 }
                 
-                sig = inspect.signature(rasterization).parameters
-                if "sh_degree" in sig:
-                    # gsplat 1.5.x+ requires SHs passed as colors with sh_degree
-                    raster_kwargs["colors"] = shs
-                    raster_kwargs["sh_degree"] = 0
+                if is_gsplat_15:
+                    if shs is not None:
+                        raster_kwargs["colors"] = shs
+                        raster_kwargs["sh_degree"] = 0
+                    else:
+                        raster_kwargs["colors"] = colors
                 else:
-                    # gsplat <= 1.4.x
                     raster_kwargs["colors"] = None
                     raster_kwargs["shs"] = shs
                 
                 render_colors, _, _ = rasterization(**raster_kwargs)
                 
-                # render_colors is [1, H, W, 3] float32 array
-                img_out = render_colors[0].clamp(0, 1).cpu()
-                img_np = (img_out.numpy() * 255.0).clip(0, 255).astype(np.uint8)
-                Image.fromarray(img_np).save(os.path.join(frames_dir, f"frame_{global_fi:05d}.png"))
+                # render_colors is [C, H, W, 3] float32 array
+                img_out = render_colors.clamp(0, 1).cpu().numpy()
+                img_np = (img_out * 255.0).clip(0, 255).astype(np.uint8)
                 
-                del img_out, img_np
+                for c_i in range(img_np.shape[0]):
+                    Image.fromarray(img_np[c_i]).save(os.path.join(frames_dir, f"frame_{global_fi:05d}.png"))
+                    global_fi += 1
+                
+                del render_colors, img_out, img_np
                 
             except Exception as e:
-                # Fallback to zeros if frame fails
-                print(f" [HYRadio_CinematicRenderer] Frame {fi} failed: {e}")
-                img_np = np.zeros((H, W, 3), dtype=np.uint8)
-                Image.fromarray(img_np).save(os.path.join(frames_dir, f"frame_{global_fi:05d}.png"))
+                print(f" [HYRadio_CinematicRenderer] Frames {start_idx}-{end_idx} failed: {e}")
+                for _ in range(end_idx - start_idx):
+                    img_np = np.zeros((H, W, 3), dtype=np.uint8)
+                    Image.fromarray(img_np).save(os.path.join(frames_dir, f"frame_{global_fi:05d}.png"))
+                    global_fi += 1
             
-            if global_fi % 100 == 0:
+            if start_idx > 0 and start_idx % 128 < chunk_size:
                 gc.collect()
-                
-            global_fi += 1
                 
         return global_fi
 
