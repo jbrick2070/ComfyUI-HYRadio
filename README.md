@@ -12,6 +12,21 @@ Fully automated. Zero API keys. Drop into `custom_nodes/` and queue.
 3. **Run**: Drag `workflows/HYRadio-Visual-Test.json` into your browser and hit **Queue Prompt**.
 4. **Walk Away**: Everything else (Scripting, Voices, Splatting, Rendering, and Mastery) is safely executed offline on your local GPU.
 
+### Step 5 — Continuous 24/7 Broadcast (OBS Automation)
+Run HYRadio as a live generative broadcast — each output episode auto-loads into OBS as it finishes.
+
+**Prerequisites:**
+- [OBS Studio](https://obsproject.com/download)
+- [Media Playlist Source (OBS Plugin)](https://obsproject.com/forum/resources/media-playlist-source.1765/)
+- [Directory Sorter for OBS](https://github.com/CodeYan01/directory_sorter_for_obs)
+
+**Setup:**
+1. Install OBS and the Media Playlist Source plugin.
+2. In OBS: **Tools → Scripts → Python Settings** → point to your Python path.
+3. Load the `directory_sorter_for_obs` script → point to `ComfyUI/output/hyradio/`.
+4. Add a **Media Playlist Source** scene item pointed to the same folder.
+5. OBS picks up each new MP4 automatically as the pipeline finishes.
+
 ---
 
 ## What It Does
