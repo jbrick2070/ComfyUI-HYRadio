@@ -204,7 +204,7 @@ class HYWorld_EnvironmentPromptBuilder:
                     raw_output = _generate_with_llm(
                         user_prompt,
                         model_id=model_id.split(" ")[0],  # Strip [ALPHA] etc
-                        max_new_tokens=768,
+                        max_new_tokens=512,
                         temperature=0.75,  # Higher temp for creative diversity
                         top_p=0.92,
                         optimization_profile=optimization_profile,
