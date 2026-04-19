@@ -67,8 +67,12 @@ class HYWorld_PerSceneSplats:
                     camera_poses=scene_poses
                 )
                 ply_list.append(result[0])  # PLY_DATA is result[0]
-                print(f"[PerSceneSplats] Scene {i+1}: PLY ok "
-                      f"({result[0].get('splats', {}).get('means').shape[0] if isinstance(result[0], dict) else '?'} pts)")
+                pts_count = '?'
+                if isinstance(result[0], dict):
+                    splats = result[0].get('splats')
+                    if splats is not None and splats.get('means') is not None:
+                        pts_count = splats['means'].shape[0]
+                print(f"[PerSceneSplats] Scene {i+1}: PLY ok ({pts_count} pts)")
             except Exception as e:
                 import traceback
                 print(f"[PerSceneSplats] Scene {i+1} FAILED: {type(e).__name__}: {e}")

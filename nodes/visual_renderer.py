@@ -14,7 +14,12 @@ except ImportError:
 
 try:
     from gsplat.rendering import rasterization
-    GSPLAT_AVAILABLE = True
+    import gsplat as _gsplat_probe
+    if hasattr(_gsplat_probe, "_C") and getattr(_gsplat_probe, "_C", None) is not None:
+        GSPLAT_AVAILABLE = True
+    else:
+        GSPLAT_AVAILABLE = False
+        print("[HYRadio_CinematicRenderer] gsplat wrapper loaded but C++ backend is None - routing to FastPLYRenderer")
 except ImportError:
     GSPLAT_AVAILABLE = False
 
@@ -76,19 +81,33 @@ class HYRadio_CinematicRenderer:
     CATEGORY = "HYWorld/Visuals"
 
     def _render_scene(self, scene_ply, scene_traj, bg_col, scale, device, frames_dir, global_fi):
-        if not GSPLAT_AVAILABLE or not isinstance(scene_ply, dict) or "splats" not in scene_ply or scene_ply["splats"] is None:
-            print("[HYRadio_CinematicRenderer] Missing gsplat or splat data. Generating empty frames.")
-            
-            c2ws = scene_traj.get("c2ws")
-            total_frames = c2ws.shape[0] if c2ws is not None else 1
-            W = int(scene_traj.get("width", 512) * scale)
-            H = int(scene_traj.get("height", 512) * scale)
-            # Write black frames
-            for _ in range(total_frames):
-                img_np = np.zeros((H, W, 3), dtype=np.uint8)
-                Image.fromarray(img_np).save(os.path.join(frames_dir, f"frame_{global_fi:05d}.png"))
-                global_fi += 1
-            return global_fi
+        if not isinstance(scene_ply, dict) or "splats" not in scene_ply or scene_ply["splats"] is None:
+            if isinstance(scene_ply, dict) and "pts3d" in scene_ply and scene_ply["pts3d"] is not None:
+                pts3d = scene_ply["pts3d"]
+                if isinstance(pts3d, torch.Tensor) and pts3d.ndim >= 2:
+                    P = pts3d.shape[0]
+                    colors = torch.ones((P, 3), device=pts3d.device)
+                    if pts3d.shape[1] >= 6:
+                        colors = pts3d[:, 3:6].clamp(0, 1)
+                    scene_ply["splats"] = {
+                        "means": pts3d[:, :3],
+                        "colors": colors,
+                        "opacities": torch.ones((P, 1), device=pts3d.device),
+                        "scales": torch.ones((P, 3), device=pts3d.device) * 0.01,
+                        "quats": torch.zeros((P, 4), device=pts3d.device)
+                    }
+                    scene_ply["splats"]["quats"][:, 0] = 1.0
+            else:
+                print("[HYRadio_CinematicRenderer] Missing gsplat or splat data. Generating empty frames.")
+                c2ws = scene_traj.get("c2ws")
+                total_frames = c2ws.shape[0] if c2ws is not None else 1
+                W = int(scene_traj.get("width", 512) * scale)
+                H = int(scene_traj.get("height", 512) * scale)
+                for _ in range(total_frames):
+                    img_np = np.zeros((H, W, 3), dtype=np.uint8)
+                    Image.fromarray(img_np).save(os.path.join(frames_dir, f"frame_{global_fi:05d}.png"))
+                    global_fi += 1
+                return global_fi
             
         splats = scene_ply["splats"]
         c2ws = scene_traj["c2ws"]
@@ -221,6 +240,19 @@ class HYRadio_CinematicRenderer:
                     "backgrounds": bg_tensor.unsqueeze(0).expand(viewmat_chunk.shape[0], -1).contiguous() if is_gsplat_15 else bg_tensor.unsqueeze(0)
                 }
                 
+                # USER REQUESTED SCHEMA FIX (cam_cfg drift)
+                _CAM_KEYS = ("camera_config", "cameras", "camera_info", "camera")
+                cam_cfg = next(
+                    (scene_ply[k] for k in _CAM_KEYS if k in scene_ply and scene_ply[k] is not None),
+                    None,
+                )
+                from gsplat import CameraModelType
+                camera_model = (
+                    cam_cfg.CameraModelType
+                    if cam_cfg is not None and hasattr(cam_cfg, "CameraModelType")
+                    else CameraModelType.PINHOLE
+                )
+                
                 if is_gsplat_15:
                     if shs is not None:
                         raster_kwargs["colors"] = shs
@@ -231,10 +263,33 @@ class HYRadio_CinematicRenderer:
                     raster_kwargs["colors"] = None
                     raster_kwargs["shs"] = shs
                 
-                render_colors, _, _ = rasterization(**raster_kwargs)
+                if GSPLAT_AVAILABLE:
+                    render_colors, _, _ = rasterization(**raster_kwargs)
+                    img_out = render_colors.clamp(0, 1).cpu().numpy()
+                else:
+                    import sys
+                    wm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "worldmirror")
+                    if wm_dir not in sys.path:
+                        sys.path.insert(0, wm_dir)
+                    from src.utils.fast_ply_render import FastPLYRenderer
+                    fast_renderer = FastPLYRenderer(device)
+                    
+                    fov_rad = 2 * math.atan2(W / 2, float(K_chunk[0, 0, 0]))
+                    fov_deg = math.degrees(fov_rad)
+                    bg_col_tuple = (bg_rgb[0], bg_rgb[1], bg_rgb[2])
+                    
+                    # FastPLY uses a loop for multiple viewmats
+                    rendered_list = []
+                    for b in range(viewmat_chunk.shape[0]):
+                        out_t = fast_renderer.render(
+                            means=means, colors=colors if colors is not None else shs[:, 0] * 0.28209 + 0.5,
+                            opacities=opacities_in, scales=scales, c2w=c2ws[start_idx+b],
+                            width=W, height=H, fov_deg=fov_deg, bg_color=bg_col_tuple
+                        )
+                        rendered_list.append(out_t)
+                    render_colors = torch.stack(rendered_list)
+                    img_out = render_colors.clamp(0, 1).cpu().numpy()
                 
-                # render_colors is [C, H, W, 3] float32 array
-                img_out = render_colors.clamp(0, 1).cpu().numpy()
                 img_np = (img_out * 255.0).clip(0, 255).astype(np.uint8)
                 
                 for c_i in range(img_np.shape[0]):
@@ -244,7 +299,9 @@ class HYRadio_CinematicRenderer:
                 del render_colors, img_out, img_np
                 
             except Exception as e:
+                import traceback
                 print(f" [HYRadio_CinematicRenderer] Frames {start_idx}-{end_idx} failed: {e}")
+                print(traceback.format_exc())
                 for _ in range(end_idx - start_idx):
                     img_np = np.zeros((H, W, 3), dtype=np.uint8)
                     Image.fromarray(img_np).save(os.path.join(frames_dir, f"frame_{global_fi:05d}.png"))
