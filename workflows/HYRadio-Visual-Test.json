@@ -515,62 +515,6 @@
       ]
     },
     {
-      "id": 16,
-      "type": "VNCCS_BackgroundPreview",
-      "pos": [
-        2400,
-        500
-      ],
-      "size": [
-        1160,
-        690
-      ],
-      "flags": {},
-      "order": 10,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "ply_path",
-          "shape": 7,
-          "type": "STRING",
-          "link": 3018
-        },
-        {
-          "name": "extrinsics",
-          "shape": 7,
-          "type": "EXTRINSICS",
-          "link": 5004
-        },
-        {
-          "name": "intrinsics",
-          "shape": 7,
-          "type": "INTRINSICS",
-          "link": 5005
-        }
-      ],
-      "outputs": [
-        {
-          "name": "video_path",
-          "type": "STRING",
-          "links": []
-        },
-        {
-          "name": "ply_path",
-          "type": "STRING",
-          "links": []
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "VNCCS_BackgroundPreview",
-        "cnr_id": "vnccs",
-        "ver": "87443c3eda651317f39a8be7fd40a1c868565134"
-      },
-      "widgets_values": [
-        "1024",
-        ""
-      ]
-    },
-    {
       "id": 201,
       "type": "HYWorld_CinematicTranslator",
       "pos": [
