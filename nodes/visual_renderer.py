@@ -142,7 +142,7 @@ class HYRadio_CinematicRenderer:
         print(f"[HYRadio_CinematicRenderer] Rendering {total_frames} frames via gsplat @ {W}x{H}...")
         
         # Invert all cameras to w2c simultaneously
-        w2cs = torch.linalg.inv(c2ws)
+        w2cs = torch.linalg.inv(c2ws).contiguous()
         
         # Set chunk size to prevent VRAM overflow on output frames (e.g. 32 frames * 1080p * 3 = ~800MB)
         chunk_size = 32 if is_gsplat_15 else 1 
@@ -150,8 +150,8 @@ class HYRadio_CinematicRenderer:
         for start_idx in range(0, total_frames, chunk_size):
             end_idx = min(start_idx + chunk_size, total_frames)
             
-            viewmat_chunk = w2cs[start_idx:end_idx] # [C, 4, 4]
-            K_chunk = intrs[start_idx:end_idx]      # [C, 3, 3]
+            viewmat_chunk = w2cs[start_idx:end_idx].contiguous() # [C, 4, 4]
+            K_chunk = intrs[start_idx:end_idx].contiguous()      # [C, 3, 3]
             
             try:
                 raster_kwargs = {
@@ -163,7 +163,7 @@ class HYRadio_CinematicRenderer:
                     "Ks": K_chunk,
                     "width": W,
                     "height": H,
-                    "backgrounds": bg_tensor.unsqueeze(0).expand(viewmat_chunk.shape[0], -1) if is_gsplat_15 else bg_tensor.unsqueeze(0)
+                    "backgrounds": bg_tensor.unsqueeze(0).expand(viewmat_chunk.shape[0], -1).contiguous() if is_gsplat_15 else bg_tensor.unsqueeze(0)
                 }
                 
                 if is_gsplat_15:
