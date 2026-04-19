@@ -97,20 +97,36 @@ class HYRadio_CinematicRenderer:
         
         W = int(scene_traj.get("width", 512) * scale)
         H = int(scene_traj.get("height", 512) * scale)
-        def force_unbatched(t):
+        # TODO: Remove once VNCCS nodes stop emitting [1, N, D] shapes.
+        # Tracking issue: Upstream VNCCS batch leak
+        def force_unbatched(t, name, expected_dims=2):
             if t is None: return None
             # Strip PyTorch batch dimension if VNCCS leaked it [1, N, ...]
-            # E.g. [1, N, 3] -> [N, 3]. Note: shs is [N, K, 3], so N != 1.
-            if t.dim() >= 2 and t.shape[0] == 1:
-                return t.squeeze(0)
+            # E.g. [1, N, 3] -> [N, 3]
+            if t.dim() > expected_dims and t.shape[0] == 1:
+                old_shape = list(t.shape)
+                t_sq = t.squeeze(0)
+                print(f"[HYRadio_CinematicRenderer] force_unbatched: stripped leading dim from {name}, shape {old_shape} -> {list(t_sq.shape)}")
+                return t_sq
             return t
 
-        means = force_unbatched(splats["means"]).to(device)
-        quats = force_unbatched(splats["quats"]).to(device)
-        scales = force_unbatched(splats["scales"]).to(device)
-        opacities = force_unbatched(splats["opacities"]).to(device)
-        shs = force_unbatched(splats["shs"]).to(device) if "shs" in splats else None
-        colors = force_unbatched(splats["colors"]).to(device) if "colors" in splats else None
+        means_raw = force_unbatched(splats.get("means"), "means", expected_dims=2)
+        means = means_raw.to(device) if means_raw is not None else None
+        
+        quats_raw = force_unbatched(splats.get("quats"), "quats", expected_dims=2)
+        quats = quats_raw.to(device) if quats_raw is not None else None
+        
+        scales_raw = force_unbatched(splats.get("scales"), "scales", expected_dims=2)
+        scales = scales_raw.to(device) if scales_raw is not None else None
+        
+        opacities_raw = force_unbatched(splats.get("opacities"), "opacities", expected_dims=1)
+        opacities = opacities_raw.to(device) if opacities_raw is not None else None
+        
+        shs_raw = force_unbatched(splats.get("shs"), "shs", expected_dims=3)
+        shs = shs_raw.to(device) if shs_raw is not None else None
+        
+        colors_raw = force_unbatched(splats.get("colors"), "colors", expected_dims=2)
+        colors = colors_raw.to(device) if colors_raw is not None else None
         
         import inspect
         from gsplat import rasterization
