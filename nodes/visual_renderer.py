@@ -1,6 +1,16 @@
 import torch
 import numpy as np
 import math
+import os
+import time
+import gc
+from PIL import Image
+
+try:
+    import folder_paths
+    COMFY_TEMP_DIR = folder_paths.get_temp_directory()
+except ImportError:
+    COMFY_TEMP_DIR = os.path.join(os.path.expanduser("~"), "Documents", "ComfyUI", "temp")
 
 try:
     from gsplat.rendering import rasterization
@@ -59,13 +69,13 @@ class HYRadio_CinematicRenderer:
             }
         }
     
-    RETURN_TYPES = ("IMAGE", )
-    RETURN_NAMES = ("cinematic_frames", )
+    RETURN_TYPES = ("STRING", )
+    RETURN_NAMES = ("frames_pattern", )
     INPUT_IS_LIST = True
     FUNCTION = "render"
     CATEGORY = "HYWorld/Visuals"
 
-    def _render_scene(self, scene_ply, scene_traj, bg_col, scale, device):
+    def _render_scene(self, scene_ply, scene_traj, bg_col, scale, device, frames_dir, global_fi):
         if not GSPLAT_AVAILABLE or not isinstance(scene_ply, dict) or "splats" not in scene_ply or scene_ply["splats"] is None:
             print("[HYRadio_CinematicRenderer] Missing gsplat or splat data. Generating empty frames.")
             
@@ -73,7 +83,12 @@ class HYRadio_CinematicRenderer:
             total_frames = c2ws.shape[0] if c2ws is not None else 1
             W = int(scene_traj.get("width", 512) * scale)
             H = int(scene_traj.get("height", 512) * scale)
-            return torch.zeros((total_frames, H, W, 3), dtype=torch.float32)
+            # Write black frames
+            for _ in range(total_frames):
+                img_np = np.zeros((H, W, 3), dtype=np.uint8)
+                Image.fromarray(img_np).save(os.path.join(frames_dir, f"frame_{global_fi:05d}.png"))
+                global_fi += 1
+            return global_fi
             
         splats = scene_ply["splats"]
         c2ws = scene_traj["c2ws"]
@@ -116,7 +131,6 @@ class HYRadio_CinematicRenderer:
         bg_rgb = [float(x.strip()) for x in bg_col.split(",")]
         bg_tensor = torch.tensor(bg_rgb, dtype=torch.float32, device=device)
         
-        rendered_images = []
         print(f"[HYRadio_CinematicRenderer] Rendering {total_frames} frames via gsplat @ {W}x{H}...")
         
         for fi in range(total_frames):
@@ -144,16 +158,25 @@ class HYRadio_CinematicRenderer:
                     backgrounds=bg_tensor.unsqueeze(0)
                 )
                 
-                # render_colors is [1, H, W, 3]
+                # render_colors is [1, H, W, 3] float32 array
                 img_out = render_colors[0].clamp(0, 1).cpu()
-                rendered_images.append(img_out)
+                img_np = (img_out.numpy() * 255.0).clip(0, 255).astype(np.uint8)
+                Image.fromarray(img_np).save(os.path.join(frames_dir, f"frame_{global_fi:05d}.png"))
+                
+                del img_out, img_np
                 
             except Exception as e:
                 # Fallback to zeros if frame fails
                 print(f" [HYRadio_CinematicRenderer] Frame {fi} failed: {e}")
-                rendered_images.append(torch.zeros((H, W, 3), dtype=torch.float32))
+                img_np = np.zeros((H, W, 3), dtype=np.uint8)
+                Image.fromarray(img_np).save(os.path.join(frames_dir, f"frame_{global_fi:05d}.png"))
+            
+            if global_fi % 100 == 0:
+                gc.collect()
                 
-        return torch.stack(rendered_images, dim=0) # [B, H, W, 3]
+            global_fi += 1
+                
+        return global_fi
 
     def render(self, ply_data, trajectory, bg_color=["0.0,0.0,0.0"], render_scale=[1.0]):
         from .cinematography import _validate_trajectory # Dynamic import of the validator
@@ -177,22 +200,27 @@ class HYRadio_CinematicRenderer:
                 ply_data = ply_data + [ply_data[-1]] * (len(trajectory) - len(ply_data))
 
             # Per-scene render
-            all_frames = []
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            
+            # BS.9 Storage
+            session_id = str(int(time.time()))
+            frames_dir = os.path.join(COMFY_TEMP_DIR, f"cinematic_frames_{session_id}")
+            os.makedirs(frames_dir, exist_ok=True)
+            global_fi = 0
+            
             for i, (scene_ply, scene_traj) in enumerate(zip(ply_data, trajectory)):
                 print(f"[CinematicRenderer] Scene {i+1}/{len(trajectory)}...")
                 scene_ply = _validate_splats(scene_ply)          # P2.2
                 scene_traj = _validate_trajectory(scene_traj)     # P2.1
-                frames = self._render_scene(
-                    scene_ply, scene_traj, bg_col, scale, device
+                global_fi = self._render_scene(
+                    scene_ply, scene_traj, bg_col, scale, device, frames_dir, global_fi
                 )
-                all_frames.append(frames)
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
-            out_tensor = torch.cat(all_frames, dim=0)
-            print(f"[CinematicRenderer] EXIT OK: {out_tensor.shape}")
-            return (out_tensor,)
+            frames_pattern = os.path.join(frames_dir, "frame_%05d.png")
+            print(f"[CinematicRenderer] EXIT OK: {global_fi} frames saved to {frames_pattern}")
+            return (frames_pattern,)
 
         except Exception as e:
             import traceback

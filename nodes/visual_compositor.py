@@ -28,7 +28,7 @@ class HYRadio_VideoCompositor:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "cinematic_frames": ("IMAGE",),
+                "frames_pattern": ("STRING", {"forceInput": True}),
                 "base_video_path": ("STRING", {"forceInput": True}),
                 "fps": ("INT", {"default": 24, "min": 1, "max": 120}),
                 "composite_mode": (["full_overlay", "pip_top_right", "pip_bottom_right"], {"default": "full_overlay"}),
@@ -41,29 +41,16 @@ class HYRadio_VideoCompositor:
     FUNCTION = "composite"
     CATEGORY = "HYWorld/Visuals"
 
-    def composite(self, cinematic_frames, base_video_path, fps=24, composite_mode="full_overlay"):
-        os.makedirs(COMFY_TEMP_DIR, exist_ok=True)
+    def composite(self, frames_pattern, base_video_path, fps=24, composite_mode="full_overlay"):
         os.makedirs(COMFY_OUTPUT_DIR, exist_ok=True)
         
         if not os.path.exists(base_video_path):
             print(f"[HYRadio_VideoCompositor] ERROR: base video not found at {base_video_path}")
             return (base_video_path,)
             
-        B, H, W, C = cinematic_frames.shape
+        print(f"[HYRadio_VideoCompositor] Streaming frames directly from disk: {frames_pattern}")
         
-        # 1. Save tensor frames to a unique temp directory
         session_id = str(int(time.time()))
-        frames_dir = os.path.join(COMFY_TEMP_DIR, f"cinematic_frames_{session_id}")
-        os.makedirs(frames_dir, exist_ok=True)
-        
-        print(f"[HYRadio_VideoCompositor] Saving {B} frames to {frames_dir}...")
-        for i in range(B):
-            img_tensor = cinematic_frames[i]
-            img_np = (img_tensor.cpu().numpy() * 255.0).clip(0, 255).astype(np.uint8)
-            img_pil = Image.fromarray(img_np)
-            img_pil.save(os.path.join(frames_dir, f"frame_{i:05d}.png"))
-            
-        frames_pattern = os.path.join(frames_dir, "frame_%05d.png")
         
         # 2. Build FFMPEG command
         ffmpeg_bin = _get_ffmpeg_path()

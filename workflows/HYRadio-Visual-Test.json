@@ -1,1015 +1,1015 @@
 {
-    "last_node_id": 2016,
-    "last_link_id": 10004,
-    "nodes": [
+  "last_node_id": 2016,
+  "last_link_id": 10004,
+  "nodes": [
+    {
+      "id": 100,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        50,
+        50
+      ],
+      "outputs": [
         {
-            "id": 100,
-            "type": "CheckpointLoaderSimple",
-            "pos": [
-                50,
-                50
-            ],
-            "outputs": [
-                {
-                    "name": "MODEL",
-                    "type": "MODEL",
-                    "links": [
-                        1000
-                    ]
-                },
-                {
-                    "name": "CLIP",
-                    "type": "CLIP",
-                    "links": [
-                        1001,
-                        1002
-                    ]
-                },
-                {
-                    "name": "VAE",
-                    "type": "VAE",
-                    "links": [
-                        1003
-                    ]
-                }
-            ],
-            "widgets_values": [
-                "sd3.5_large_fp8_scaled.safetensors"
-            ],
-            "title": "1. SD3.5 Large (Model Bank)",
-            "color": "#332244",
-            "bgcolor": "#553355",
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "properties": {
-                "Node name for S&R": "CheckpointLoaderSimple"
-            },
-            "size": [
-                315,
-                130
-            ]
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1000
+          ]
         },
         {
-            "id": 101,
-            "type": "EmptyLatentImage",
-            "pos": [
-                50,
-                300
-            ],
-            "outputs": [
-                {
-                    "name": "LATENT",
-                    "type": "LATENT",
-                    "links": [
-                        1004
-                    ]
-                }
-            ],
-            "widgets_values": [
-                2048,
-                1024,
-                3
-            ],
-            "title": "2. Panoramic Resolution (2:1 Ratio)",
-            "color": "#223344",
-            "bgcolor": "#334455",
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "properties": {
-                "Node name for S&R": "EmptyLatentImage"
-            },
-            "size": [
-                315,
-                130
-            ]
-        },
-        {
-            "id": 102,
-            "type": "HYWorld_BatchCLIPTextEncode",
-            "pos": [
-                400,
-                50
-            ],
-            "inputs": [
-                {
-                    "name": "clip",
-                    "type": "CLIP",
-                    "link": 1001
-                },
-                {
-                    "name": "text_list",
-                    "type": "STRING_LIST",
-                    "link": 6001
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "CONDITIONING",
-                    "type": "CONDITIONING",
-                    "links": [
-                        1005
-                    ]
-                }
-            ],
-            "widgets_values": [
-                ""
-            ],
-            "title": "3. Script Theme (Batched BatchCLIPTextEncode)",
-            "color": "#224422",
-            "bgcolor": "#335533",
-            "size": [
-                400,
-                200
-            ],
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "properties": {
-                "Node name for S&R": "HYWorld_BatchCLIPTextEncode"
-            }
-        },
-        {
-            "id": 103,
-            "type": "CLIPTextEncode",
-            "pos": [
-                400,
-                300
-            ],
-            "inputs": [
-                {
-                    "name": "clip",
-                    "type": "CLIP",
-                    "link": 1002
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "CONDITIONING",
-                    "type": "CONDITIONING",
-                    "links": [
-                        1006
-                    ]
-                }
-            ],
-            "widgets_values": [
-                "watermark, text, borders, bad quality"
-            ],
-            "title": "4. Anti-Watermark (Negative Prompt)",
-            "color": "#442222",
-            "bgcolor": "#553333",
-            "size": [
-                400,
-                150
-            ],
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "properties": {
-                "Node name for S&R": "CLIPTextEncode"
-            }
-        },
-        {
-            "id": 104,
-            "type": "KSampler",
-            "pos": [
-                800,
-                50
-            ],
-            "inputs": [
-                {
-                    "name": "model",
-                    "type": "MODEL",
-                    "link": 1000
-                },
-                {
-                    "name": "positive",
-                    "type": "CONDITIONING",
-                    "link": 1005
-                },
-                {
-                    "name": "negative",
-                    "type": "CONDITIONING",
-                    "link": 1006
-                },
-                {
-                    "name": "latent_image",
-                    "type": "LATENT",
-                    "link": 1004
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "LATENT",
-                    "type": "LATENT",
-                    "links": [
-                        1007
-                    ]
-                }
-            ],
-            "widgets_values": [
-                123456789,
-                "randomize",
-                30,
-                4.5,
-                "dpmpp_2m",
-                "karras",
-                1.0
-            ],
-            "title": "5. Render Core (KSampler)",
-            "color": "#443322",
-            "bgcolor": "#554433",
-            "size": [
-                315,
-                260
-            ],
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "properties": {
-                "Node name for S&R": "KSampler"
-            }
-        },
-        {
-            "id": 105,
-            "type": "VAEDecode",
-            "pos": [
-                1200,
-                50
-            ],
-            "inputs": [
-                {
-                    "name": "samples",
-                    "type": "LATENT",
-                    "link": 1007
-                },
-                {
-                    "name": "vae",
-                    "type": "VAE",
-                    "link": 1003
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "IMAGE",
-                    "type": "IMAGE",
-                    "links": [
-                        2000,
-                        4001,
-                        4002
-                    ]
-                }
-            ],
-            "title": "6. Final Output (VAE Decode)",
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "properties": {
-                "Node name for S&R": "VAEDecode"
-            },
-            "size": [
-                315,
-                130
-            ]
-        },
-        {
-            "id": 107,
-            "type": "SaveImage",
-            "pos": [
-                1600,
-                50
-            ],
-            "inputs": [
-                {
-                    "name": "images",
-                    "type": "IMAGE",
-                    "link": 2000
-                }
-            ],
-            "outputs": [],
-            "widgets_values": [
-                "HYRadio_Panorama_Batch"
-            ],
-            "title": "6. Save Panorama Batch",
-            "color": "#114444",
-            "bgcolor": "#225555",
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "properties": {
-                "Node name for S&R": "SaveImage"
-            },
-            "size": [
-                315,
-                130
-            ]
-        },
-        {
-            "id": 13,
-            "type": "VNCCS_LoadWorldMirrorV2Model",
-            "pos": [
-                800,
-                500
-            ],
-            "size": [
-                310,
-                90
-            ],
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "outputs": [
-                {
-                    "name": "model",
-                    "type": "WORLDMIRROR_MODEL",
-                    "links": [
-                        3014
-                    ]
-                }
-            ],
-            "properties": {
-                "Node name for S&R": "VNCCS_LoadWorldMirrorV2Model"
-            },
-            "widgets_values": [
-                "cuda",
-                "bf16",
-                "normal+gs"
-            ]
-        },
-        {
-            "id": 14,
-            "type": "VNCCS_Equirect360ToViews",
-            "pos": [
-                1200,
-                500
-            ],
-            "size": [
-                300,
-                320
-            ],
-            "flags": {},
-            "order": 4,
-            "mode": 0,
-            "inputs": [
-                {
-                    "name": "panorama",
-                    "type": "IMAGE",
-                    "link": 4002
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "views",
-                    "type": "IMAGE",
-                    "links": [
-                        3015
-                    ]
-                },
-                {
-                    "name": "intrinsics",
-                    "type": "TENSOR",
-                    "links": [
-                        3016
-                    ]
-                },
-                {
-                    "name": "camera_poses",
-                    "type": "TENSOR",
-                    "links": [
-                        3017
-                    ]
-                }
-            ],
-            "properties": {
-                "Node name for S&R": "VNCCS_Equirect360ToViews",
-                "cnr_id": "vnccs",
-                "ver": "87443c3eda651317f39a8be7fd40a1c868565134"
-            },
-            "widgets_values": [
-                90,
-                45,
-                "0",
-                518
-            ]
-        },
-        {
-            "id": 15,
-            "type": "HYWorld_PerSceneSplats",
-            "pos": [
-                1600,
-                500
-            ],
-            "size": [
-                350,
-                330
-            ],
-            "flags": {},
-            "order": 6,
-            "mode": 0,
-            "inputs": [
-                {
-                    "name": "image_batch",
-                    "type": "IMAGE",
-                    "link": 3015
-                },
-                {
-                    "name": "worldmirror_model",
-                    "type": "WORLDMIRROR_MODEL",
-                    "link": 3014
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "ply_data",
-                    "type": "PLY_DATA",
-                    "links": [
-                        3013,
-                        10001
-                    ]
-                },
-                {
-                    "name": "depth_maps",
-                    "type": "IMAGE",
-                    "links": []
-                },
-                {
-                    "name": "normal_maps",
-                    "type": "IMAGE",
-                    "links": []
-                },
-                {
-                    "name": "camera_poses",
-                    "type": "TENSOR",
-                    "links": []
-                },
-                {
-                    "name": "camera_intrinsics",
-                    "type": "TENSOR",
-                    "links": []
-                },
-                {
-                    "name": "raw_splats",
-                    "type": "VNCCS_SPLAT",
-                    "links": []
-                }
-            ],
-            "properties": {
-                "Node name for S&R": "VNCCS_WorldMirrorV2_3D"
-            },
-            "widgets_values": [
-                518,
-                true,
-                1
-            ]
-        },
-        {
-            "id": 12,
-            "type": "VNCCS_SavePLY",
-            "pos": [
-                2000,
-                500
-            ],
-            "size": [
-                270,
-                180
-            ],
-            "flags": {},
-            "order": 8,
-            "mode": 0,
-            "inputs": [
-                {
-                    "name": "ply_data",
-                    "type": "PLY_DATA",
-                    "link": 3013
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "filepath",
-                    "type": "STRING",
-                    "links": [
-                        3018
-                    ]
-                }
-            ],
-            "properties": {
-                "Node name for S&R": "VNCCS_SavePLY",
-                "cnr_id": "vnccs",
-                "ver": "87443c3eda651317f39a8be7fd40a1c868565134"
-            },
-            "widgets_values": [
-                "HYRadio_Scene_Mesh",
-                false,
-                true,
-                0,
-                0,
-                0
-            ]
-        },
-        {
-            "id": 16,
-            "type": "VNCCS_BackgroundPreview",
-            "pos": [
-                2400,
-                500
-            ],
-            "size": [
-                1160,
-                690
-            ],
-            "flags": {},
-            "order": 10,
-            "mode": 0,
-            "inputs": [
-                {
-                    "name": "ply_path",
-                    "shape": 7,
-                    "type": "STRING",
-                    "link": 3018
-                },
-                {
-                    "name": "extrinsics",
-                    "shape": 7,
-                    "type": "EXTRINSICS",
-                    "link": 5004
-                },
-                {
-                    "name": "intrinsics",
-                    "shape": 7,
-                    "type": "INTRINSICS",
-                    "link": 5005
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "video_path",
-                    "type": "STRING",
-                    "links": []
-                },
-                {
-                    "name": "ply_path",
-                    "type": "STRING",
-                    "links": []
-                }
-            ],
-            "properties": {
-                "Node name for S&R": "VNCCS_BackgroundPreview",
-                "cnr_id": "vnccs",
-                "ver": "87443c3eda651317f39a8be7fd40a1c868565134"
-            },
-            "widgets_values": [
-                "1024",
-                ""
-            ]
-        },
-        {
-            "id": 201,
-            "type": "HYWorld_CinematicTranslator",
-            "pos": [
-                400,
-                550
-            ],
-            "size": [
-                315,
-                130
-            ],
-            "flags": {},
-            "order": 1,
-            "mode": 0,
-            "inputs": [
-                {
-                    "name": "cinematic_directives",
-                    "type": "STRING_LIST",
-                    "link": 6002
-                }
-            ],
-            "widgets_values": [
-                -1,
-                24,
-                512,
-                512,
-                "forward"
-            ],
-            "outputs": [
-                {
-                    "name": "trajectory",
-                    "type": "CAMERA_TRAJECTORY",
-                    "links": [
-                        10002
-                    ]
-                },
-                {
-                    "name": "extrinsics",
-                    "type": "EXTRINSICS",
-                    "links": [
-                        5002,
-                        5004
-                    ]
-                },
-                {
-                    "name": "intrinsics",
-                    "type": "INTRINSICS",
-                    "links": [
-                        5003,
-                        5005
-                    ]
-                }
-            ],
-            "properties": {
-                "Node name for S&R": "HYWorld_CinematicTranslator"
-            }
-        },
-        {
-            "id": 2012,
-            "type": "HYRadio_SignalLostVideo",
-            "pos": [
-                2800,
-                50
-            ],
-            "size": [
-                400,
-                280
-            ],
-            "title": "7. Make the Final Video",
-            "properties": {
-                "Node name for S&R": "HYRadio_SignalLostVideo"
-            },
-            "widgets_values": [
-                "[]",
-                "{}",
-                "[]",
-                24,
-                "1920x1080",
-                "Gaslight Mutation",
-                false
-            ],
-            "outputs": [
-                {
-                    "name": "video_path",
-                    "type": "STRING",
-                    "links": [
-                        10004
-                    ],
-                    "slot_index": 0
-                }
-            ],
-            "flags": {},
-            "order": 10,
-            "mode": 0,
-            "color": "#5B3A29",
-            "bgcolor": "#3C261B",
-            "inputs": [
-                {
-                    "name": "audio",
-                    "type": "AUDIO",
-                    "link": 5006
-                }
-            ]
-        },
-        {
-            "id": 2013,
-            "type": "LoadAudio",
-            "pos": [
-                50,
-                550
-            ],
-            "size": [
-                315,
-                130
-            ],
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "outputs": [
-                {
-                    "name": "audio",
-                    "type": "AUDIO",
-                    "links": [
-                        5006
-                    ]
-                }
-            ],
-            "widgets_values": [
-                "test_real_audio.wav"
-            ],
-            "properties": {
-                "Node name for S&R": "VHS_LoadAudio"
-            }
-        },
-        {
-            "id": 106,
-            "type": "HYWorld_EnvironmentPromptBuilder",
-            "pos": [
-                50,
-                800
-            ],
-            "size": [
-                315,
-                200
-            ],
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "inputs": [],
-            "outputs": [
-                {
-                    "name": "environmental_prompts",
-                    "type": "STRING_LIST",
-                    "links": [
-                        6001
-                    ]
-                },
-                {
-                    "name": "cinematic_directives",
-                    "type": "STRING_LIST",
-                    "links": [
-                        6002
-                    ]
-                }
-            ],
-            "properties": {
-                "Node name for S&R": "HYWorld_EnvironmentPromptBuilder"
-            },
-            "widgets_values": [
-                "[\"SCENE 1: Vast labyrinthine underground research facility, brutalist concrete corridors stretching into darkness, fluorescent lights flickering overhead casting harsh shadows, rows of humming server racks and industrial ventilation ducts, distant tremors causing dust to fall from the ceiling, emergency warning lights pulsing amber, cold clinical atmosphere with visible breath condensation, Ridley Scott aesthetic\", \"SCENE 2: High-security biochemistry laboratory, walls of glass containment chambers filled with bioluminescent bacterial cultures glowing sickly green, scattered papers and overturned equipment from a recent emergency, multiple workstations with holographic displays showing mutation data, dramatic chiaroscuro lighting from overhead surgical lamps, tension and chaos frozen in time, Denis Villeneuve color palette\", \"SCENE 3: Narrow emergency access tunnel carved through raw rock, emergency strip lighting along the floor casting deep red upward shadows, exposed pipes dripping condensation, distant echoing footsteps reverberating off metal grating, claustrophobic low ceiling forcing characters to crouch, smoke wisps curling through the air from overloaded electrical systems, atmosphere of desperate urgency and survival\"]",
-                60,
-                "mistralai/Mistral-Nemo-Instruct-2407",
-                "Standard",
-                490.5
-            ]
-        },
-        {
-            "id": 2014,
-            "type": "HYRadio_CinematicRenderer",
-            "pos": [
-                1400,
-                200
-            ],
-            "size": [
-                315,
-                130
-            ],
-            "flags": {},
-            "order": 16,
-            "mode": 0,
-            "inputs": [
-                {
-                    "name": "ply_data",
-                    "type": "PLY_DATA",
-                    "link": 10001
-                },
-                {
-                    "name": "trajectory",
-                    "type": "CAMERA_TRAJECTORY",
-                    "link": 10002
-                }
-            ],
-            "properties": {
-                "Node name for S&R": "HYRadio_CinematicRenderer"
-            },
-            "outputs": [
-                {
-                    "name": "",
-                    "type": "",
-                    "links": [
-                        10003
-                    ]
-                }
-            ]
-        },
-        {
-            "id": 2015,
-            "type": "HYRadio_VideoCompositor",
-            "pos": [
-                1800,
-                200
-            ],
-            "size": [
-                315,
-                130
-            ],
-            "flags": {},
-            "order": 17,
-            "mode": 0,
-            "inputs": [
-                {
-                    "name": "cinematic_frames",
-                    "type": "IMAGE",
-                    "link": 10003
-                },
-                {
-                    "name": "base_video_path",
-                    "type": "STRING",
-                    "link": 10004
-                }
-            ],
-            "properties": {
-                "Node name for S&R": "HYRadio_VideoCompositor"
-            }
-        }
-    ],
-    "links": [
-        [
-            1000,
-            100,
-            0,
-            104,
-            0,
-            "MODEL"
-        ],
-        [
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
             1001,
-            100,
-            1,
-            102,
-            0,
-            "CLIP"
-        ],
-        [
-            1002,
-            100,
-            1,
-            103,
-            0,
-            "CLIP"
-        ],
-        [
-            1003,
-            100,
-            2,
-            105,
-            1,
-            "VAE"
-        ],
-        [
-            1004,
-            101,
-            0,
-            104,
-            3,
-            "LATENT"
-        ],
-        [
-            1005,
-            102,
-            0,
-            104,
-            1,
-            "CONDITIONING"
-        ],
-        [
-            1006,
-            103,
-            0,
-            104,
-            2,
-            "CONDITIONING"
-        ],
-        [
-            1007,
-            104,
-            0,
-            105,
-            0,
-            "LATENT"
-        ],
-        [
+            1002
+          ]
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            1003
+          ]
+        }
+      ],
+      "widgets_values": [
+        "sd3.5_large_fp8_scaled.safetensors"
+      ],
+      "title": "1. SD3.5 Large (Model Bank)",
+      "color": "#332244",
+      "bgcolor": "#553355",
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "size": [
+        315,
+        130
+      ]
+    },
+    {
+      "id": 101,
+      "type": "EmptyLatentImage",
+      "pos": [
+        50,
+        300
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            1004
+          ]
+        }
+      ],
+      "widgets_values": [
+        2048,
+        1024,
+        3
+      ],
+      "title": "2. Panoramic Resolution (2:1 Ratio)",
+      "color": "#223344",
+      "bgcolor": "#334455",
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "size": [
+        315,
+        130
+      ]
+    },
+    {
+      "id": 102,
+      "type": "HYWorld_BatchCLIPTextEncode",
+      "pos": [
+        400,
+        50
+      ],
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 1001
+        },
+        {
+          "name": "text_list",
+          "type": "STRING_LIST",
+          "link": 6001
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            1005
+          ]
+        }
+      ],
+      "widgets_values": [
+        ""
+      ],
+      "title": "3. Script Theme (Batched BatchCLIPTextEncode)",
+      "color": "#224422",
+      "bgcolor": "#335533",
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "HYWorld_BatchCLIPTextEncode"
+      }
+    },
+    {
+      "id": 103,
+      "type": "CLIPTextEncode",
+      "pos": [
+        400,
+        300
+      ],
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 1002
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            1006
+          ]
+        }
+      ],
+      "widgets_values": [
+        "watermark, text, borders, bad quality"
+      ],
+      "title": "4. Anti-Watermark (Negative Prompt)",
+      "color": "#442222",
+      "bgcolor": "#553333",
+      "size": [
+        400,
+        150
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      }
+    },
+    {
+      "id": 104,
+      "type": "KSampler",
+      "pos": [
+        800,
+        50
+      ],
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 1000
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 1005
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 1006
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 1004
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            1007
+          ]
+        }
+      ],
+      "widgets_values": [
+        123456789,
+        "randomize",
+        30,
+        4.5,
+        "dpmpp_2m",
+        "karras",
+        1.0
+      ],
+      "title": "5. Render Core (KSampler)",
+      "color": "#443322",
+      "bgcolor": "#554433",
+      "size": [
+        315,
+        260
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "KSampler"
+      }
+    },
+    {
+      "id": 105,
+      "type": "VAEDecode",
+      "pos": [
+        1200,
+        50
+      ],
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 1007
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 1003
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
             2000,
-            105,
-            0,
-            107,
-            0,
-            "IMAGE"
-        ],
-        [
+            4001,
+            4002
+          ]
+        }
+      ],
+      "title": "6. Final Output (VAE Decode)",
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "size": [
+        315,
+        130
+      ]
+    },
+    {
+      "id": 107,
+      "type": "SaveImage",
+      "pos": [
+        1600,
+        50
+      ],
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 2000
+        }
+      ],
+      "outputs": [],
+      "widgets_values": [
+        "HYRadio_Panorama_Batch"
+      ],
+      "title": "6. Save Panorama Batch",
+      "color": "#114444",
+      "bgcolor": "#225555",
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "size": [
+        315,
+        130
+      ]
+    },
+    {
+      "id": 13,
+      "type": "VNCCS_LoadWorldMirrorV2Model",
+      "pos": [
+        800,
+        500
+      ],
+      "size": [
+        310,
+        90
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "model",
+          "type": "WORLDMIRROR_MODEL",
+          "links": [
+            3014
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VNCCS_LoadWorldMirrorV2Model"
+      },
+      "widgets_values": [
+        "cuda",
+        "bf16",
+        "normal+gs"
+      ]
+    },
+    {
+      "id": 14,
+      "type": "VNCCS_Equirect360ToViews",
+      "pos": [
+        1200,
+        500
+      ],
+      "size": [
+        300,
+        320
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "panorama",
+          "type": "IMAGE",
+          "link": 4002
+        }
+      ],
+      "outputs": [
+        {
+          "name": "views",
+          "type": "IMAGE",
+          "links": [
+            3015
+          ]
+        },
+        {
+          "name": "intrinsics",
+          "type": "TENSOR",
+          "links": [
+            3016
+          ]
+        },
+        {
+          "name": "camera_poses",
+          "type": "TENSOR",
+          "links": [
+            3017
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VNCCS_Equirect360ToViews",
+        "cnr_id": "vnccs",
+        "ver": "87443c3eda651317f39a8be7fd40a1c868565134"
+      },
+      "widgets_values": [
+        90,
+        45,
+        "0",
+        518
+      ]
+    },
+    {
+      "id": 15,
+      "type": "HYWorld_PerSceneSplats",
+      "pos": [
+        1600,
+        500
+      ],
+      "size": [
+        350,
+        330
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_batch",
+          "type": "IMAGE",
+          "link": 3015
+        },
+        {
+          "name": "worldmirror_model",
+          "type": "WORLDMIRROR_MODEL",
+          "link": 3014
+        }
+      ],
+      "outputs": [
+        {
+          "name": "ply_data",
+          "type": "PLY_DATA",
+          "links": [
             3013,
-            15,
-            0,
-            12,
-            0,
-            "PLY_DATA"
-        ],
-        [
-            3014,
-            13,
-            0,
-            15,
-            1,
-            "WORLDMIRROR_MODEL"
-        ],
-        [
-            3015,
-            105,
-            0,
-            15,
-            0,
-            "IMAGE"
-        ],
-        [
-            3016,
-            14,
-            1,
-            15,
-            2,
-            "TENSOR"
-        ],
-        [
-            3017,
-            14,
-            2,
-            15,
-            3,
-            "TENSOR"
-        ],
-        [
-            3018,
-            12,
-            0,
-            16,
-            0,
-            "STRING"
-        ],
-        [
-            4002,
-            105,
-            0,
-            14,
-            0,
-            "IMAGE"
-        ],
-        [
-            5004,
-            201,
-            1,
-            16,
-            1,
-            "EXTRINSICS"
-        ],
-        [
-            5005,
-            201,
-            2,
-            16,
-            2,
-            "INTRINSICS"
-        ],
-        [
-            5006,
-            2013,
-            0,
-            2012,
-            0,
-            "AUDIO"
-        ],
-        [
-            6001,
-            106,
-            0,
-            102,
-            1,
-            "STRING_LIST"
-        ],
-        [
-            6002,
-            106,
-            1,
-            201,
-            0,
-            "STRING_LIST"
-        ],
-        [
-            10001,
-            15,
-            0,
-            2014,
-            0,
-            "PLY_DATA"
-        ],
-        [
-            10002,
-            201,
-            0,
-            2014,
-            1,
-            "CAMERA_TRAJECTORY"
-        ],
-        [
-            10003,
-            2014,
-            0,
-            2015,
-            0,
-            "IMAGE"
-        ],
-        [
-            10004,
-            2012,
-            0,
-            2015,
-            1,
-            "STRING"
-        ]
+            10001
+          ]
+        },
+        {
+          "name": "depth_maps",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "normal_maps",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "camera_poses",
+          "type": "TENSOR",
+          "links": []
+        },
+        {
+          "name": "camera_intrinsics",
+          "type": "TENSOR",
+          "links": []
+        },
+        {
+          "name": "raw_splats",
+          "type": "VNCCS_SPLAT",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VNCCS_WorldMirrorV2_3D"
+      },
+      "widgets_values": [
+        518,
+        true,
+        1
+      ]
+    },
+    {
+      "id": 12,
+      "type": "VNCCS_SavePLY",
+      "pos": [
+        2000,
+        500
+      ],
+      "size": [
+        270,
+        180
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "ply_data",
+          "type": "PLY_DATA",
+          "link": 3013
+        }
+      ],
+      "outputs": [
+        {
+          "name": "filepath",
+          "type": "STRING",
+          "links": [
+            3018
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VNCCS_SavePLY",
+        "cnr_id": "vnccs",
+        "ver": "87443c3eda651317f39a8be7fd40a1c868565134"
+      },
+      "widgets_values": [
+        "HYRadio_Scene_Mesh",
+        false,
+        true,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": 16,
+      "type": "VNCCS_BackgroundPreview",
+      "pos": [
+        2400,
+        500
+      ],
+      "size": [
+        1160,
+        690
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "ply_path",
+          "shape": 7,
+          "type": "STRING",
+          "link": 3018
+        },
+        {
+          "name": "extrinsics",
+          "shape": 7,
+          "type": "EXTRINSICS",
+          "link": 5004
+        },
+        {
+          "name": "intrinsics",
+          "shape": 7,
+          "type": "INTRINSICS",
+          "link": 5005
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_path",
+          "type": "STRING",
+          "links": []
+        },
+        {
+          "name": "ply_path",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VNCCS_BackgroundPreview",
+        "cnr_id": "vnccs",
+        "ver": "87443c3eda651317f39a8be7fd40a1c868565134"
+      },
+      "widgets_values": [
+        "1024",
+        ""
+      ]
+    },
+    {
+      "id": 201,
+      "type": "HYWorld_CinematicTranslator",
+      "pos": [
+        400,
+        550
+      ],
+      "size": [
+        315,
+        130
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "cinematic_directives",
+          "type": "STRING_LIST",
+          "link": 6002
+        }
+      ],
+      "widgets_values": [
+        -1,
+        24,
+        512,
+        512,
+        "forward"
+      ],
+      "outputs": [
+        {
+          "name": "trajectory",
+          "type": "CAMERA_TRAJECTORY",
+          "links": [
+            10002
+          ]
+        },
+        {
+          "name": "extrinsics",
+          "type": "EXTRINSICS",
+          "links": [
+            5002,
+            5004
+          ]
+        },
+        {
+          "name": "intrinsics",
+          "type": "INTRINSICS",
+          "links": [
+            5003,
+            5005
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "HYWorld_CinematicTranslator"
+      }
+    },
+    {
+      "id": 2012,
+      "type": "HYRadio_SignalLostVideo",
+      "pos": [
+        2800,
+        50
+      ],
+      "size": [
+        400,
+        280
+      ],
+      "title": "7. Make the Final Video",
+      "properties": {
+        "Node name for S&R": "HYRadio_SignalLostVideo"
+      },
+      "widgets_values": [
+        "[]",
+        "{}",
+        "[]",
+        24,
+        "1920x1080",
+        "Gaslight Mutation",
+        false
+      ],
+      "outputs": [
+        {
+          "name": "video_path",
+          "type": "STRING",
+          "links": [
+            10004
+          ],
+          "slot_index": 0
+        }
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "color": "#5B3A29",
+      "bgcolor": "#3C261B",
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 5006
+        }
+      ]
+    },
+    {
+      "id": 2013,
+      "type": "LoadAudio",
+      "pos": [
+        50,
+        550
+      ],
+      "size": [
+        315,
+        130
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            5006
+          ]
+        }
+      ],
+      "widgets_values": [
+        "test_real_audio.wav"
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadAudio"
+      }
+    },
+    {
+      "id": 106,
+      "type": "HYWorld_EnvironmentPromptBuilder",
+      "pos": [
+        50,
+        800
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "environmental_prompts",
+          "type": "STRING_LIST",
+          "links": [
+            6001
+          ]
+        },
+        {
+          "name": "cinematic_directives",
+          "type": "STRING_LIST",
+          "links": [
+            6002
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "HYWorld_EnvironmentPromptBuilder"
+      },
+      "widgets_values": [
+        "[\"SCENE 1: Vast labyrinthine underground research facility, brutalist concrete corridors stretching into darkness, fluorescent lights flickering overhead casting harsh shadows, rows of humming server racks and industrial ventilation ducts, distant tremors causing dust to fall from the ceiling, emergency warning lights pulsing amber, cold clinical atmosphere with visible breath condensation, Ridley Scott aesthetic\", \"SCENE 2: High-security biochemistry laboratory, walls of glass containment chambers filled with bioluminescent bacterial cultures glowing sickly green, scattered papers and overturned equipment from a recent emergency, multiple workstations with holographic displays showing mutation data, dramatic chiaroscuro lighting from overhead surgical lamps, tension and chaos frozen in time, Denis Villeneuve color palette\", \"SCENE 3: Narrow emergency access tunnel carved through raw rock, emergency strip lighting along the floor casting deep red upward shadows, exposed pipes dripping condensation, distant echoing footsteps reverberating off metal grating, claustrophobic low ceiling forcing characters to crouch, smoke wisps curling through the air from overloaded electrical systems, atmosphere of desperate urgency and survival\"]",
+        60,
+        "mistralai/Mistral-Nemo-Instruct-2407",
+        "Standard",
+        490.5
+      ]
+    },
+    {
+      "id": 2014,
+      "type": "HYRadio_CinematicRenderer",
+      "pos": [
+        1400,
+        200
+      ],
+      "size": [
+        315,
+        130
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "ply_data",
+          "type": "PLY_DATA",
+          "link": 10001
+        },
+        {
+          "name": "trajectory",
+          "type": "CAMERA_TRAJECTORY",
+          "link": 10002
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "HYRadio_CinematicRenderer"
+      },
+      "outputs": [
+        {
+          "name": "",
+          "type": "",
+          "links": [
+            10003
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2015,
+      "type": "HYRadio_VideoCompositor",
+      "pos": [
+        1800,
+        200
+      ],
+      "size": [
+        315,
+        130
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "frames_pattern",
+          "type": "STRING",
+          "link": 10003
+        },
+        {
+          "name": "base_video_path",
+          "type": "STRING",
+          "link": 10004
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "HYRadio_VideoCompositor"
+      }
+    }
+  ],
+  "links": [
+    [
+      1000,
+      100,
+      0,
+      104,
+      0,
+      "MODEL"
     ],
-    "version": 0.4
+    [
+      1001,
+      100,
+      1,
+      102,
+      0,
+      "CLIP"
+    ],
+    [
+      1002,
+      100,
+      1,
+      103,
+      0,
+      "CLIP"
+    ],
+    [
+      1003,
+      100,
+      2,
+      105,
+      1,
+      "VAE"
+    ],
+    [
+      1004,
+      101,
+      0,
+      104,
+      3,
+      "LATENT"
+    ],
+    [
+      1005,
+      102,
+      0,
+      104,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      1006,
+      103,
+      0,
+      104,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      1007,
+      104,
+      0,
+      105,
+      0,
+      "LATENT"
+    ],
+    [
+      2000,
+      105,
+      0,
+      107,
+      0,
+      "IMAGE"
+    ],
+    [
+      3013,
+      15,
+      0,
+      12,
+      0,
+      "PLY_DATA"
+    ],
+    [
+      3014,
+      13,
+      0,
+      15,
+      1,
+      "WORLDMIRROR_MODEL"
+    ],
+    [
+      3015,
+      105,
+      0,
+      15,
+      0,
+      "IMAGE"
+    ],
+    [
+      3016,
+      14,
+      1,
+      15,
+      2,
+      "TENSOR"
+    ],
+    [
+      3017,
+      14,
+      2,
+      15,
+      3,
+      "TENSOR"
+    ],
+    [
+      3018,
+      12,
+      0,
+      16,
+      0,
+      "STRING"
+    ],
+    [
+      4002,
+      105,
+      0,
+      14,
+      0,
+      "IMAGE"
+    ],
+    [
+      5004,
+      201,
+      1,
+      16,
+      1,
+      "EXTRINSICS"
+    ],
+    [
+      5005,
+      201,
+      2,
+      16,
+      2,
+      "INTRINSICS"
+    ],
+    [
+      5006,
+      2013,
+      0,
+      2012,
+      0,
+      "AUDIO"
+    ],
+    [
+      6001,
+      106,
+      0,
+      102,
+      1,
+      "STRING_LIST"
+    ],
+    [
+      6002,
+      106,
+      1,
+      201,
+      0,
+      "STRING_LIST"
+    ],
+    [
+      10001,
+      15,
+      0,
+      2014,
+      0,
+      "PLY_DATA"
+    ],
+    [
+      10002,
+      201,
+      0,
+      2014,
+      1,
+      "CAMERA_TRAJECTORY"
+    ],
+    [
+      10003,
+      2014,
+      0,
+      2015,
+      0,
+      "STRING"
+    ],
+    [
+      10004,
+      2012,
+      0,
+      2015,
+      1,
+      "STRING"
+    ]
+  ],
+  "version": 0.4
 }
