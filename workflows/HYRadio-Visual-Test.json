@@ -256,7 +256,6 @@
           "type": "IMAGE",
           "links": [
             2000,
-            4001,
             4002
           ]
         }
@@ -369,16 +368,12 @@
         {
           "name": "intrinsics",
           "type": "TENSOR",
-          "links": [
-            3016
-          ]
+          "links": []
         },
         {
           "name": "camera_poses",
           "type": "TENSOR",
-          "links": [
-            3017
-          ]
+          "links": []
         }
       ],
       "properties": {
@@ -455,7 +450,7 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "VNCCS_WorldMirrorV2_3D"
+        "Node name for S&R": "HYWorld_PerSceneSplats"
       },
       "widgets_values": [
         518,
@@ -603,7 +598,6 @@
           "name": "extrinsics",
           "type": "EXTRINSICS",
           "links": [
-            5002,
             5004
           ]
         },
@@ -611,7 +605,6 @@
           "name": "intrinsics",
           "type": "INTRINSICS",
           "links": [
-            5003,
             5005
           ]
         }
@@ -694,7 +687,7 @@
         "test_real_audio.wav"
       ],
       "properties": {
-        "Node name for S&R": "VHS_LoadAudio"
+        "Node name for S&R": "LoadAudio"
       }
     },
     {
@@ -900,27 +893,11 @@
     ],
     [
       3015,
-      105,
+      14,
       0,
       15,
       0,
       "IMAGE"
-    ],
-    [
-      3016,
-      14,
-      1,
-      15,
-      2,
-      "TENSOR"
-    ],
-    [
-      3017,
-      14,
-      2,
-      15,
-      3,
-      "TENSOR"
     ],
     [
       3018,
