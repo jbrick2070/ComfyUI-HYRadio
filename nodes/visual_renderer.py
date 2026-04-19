@@ -122,11 +122,41 @@ class HYRadio_CinematicRenderer:
         opacities_raw = force_unbatched(splats.get("opacities"), "opacities", expected_dims=1)
         opacities = opacities_raw.to(device) if opacities_raw is not None else None
         
-        # HYWorld 2.0 uses "sh", v1 uses "shs"
-        shs_t = splats.get("shs") if "shs" in splats else splats.get("sh")
+        # HY-World 2.0 native key is "sh"; v1 and generic gsplat stacks use "shs".
+        # Some variants stash pre-activated color under "features_dc" or "rgb".
+        _SH_KEYS = ("shs", "sh", "features_dc", "rgb", "colors")
+        shs_t = next(
+            (splats[k] for k in _SH_KEYS if k in splats and splats[k] is not None),
+            None,
+        )
+
+        if shs_t is None:
+            raise KeyError(
+                f"[HYRadio] No color/SH tensor found in splats. "
+                f"Available keys: {list(splats.keys())}"
+            )
+
+        # ONE-SHOT DIAGNOSTIC (Requested by QA Review)
+        print('\n--- SPLAT KEYS ---')
+        print('splats keys:', list(splats.keys()))
+        for k_idx, v_idx in splats.items():
+            if hasattr(v_idx, 'shape'):
+                print(f'  {k_idx}: {tuple(v_idx.shape)} dtype={v_idx.dtype}')
+
+        print('\n--- SH DIAGNOSTIC ---')
+        print('shape:', tuple(shs_t.shape))
+        print('dtype:', shs_t.dtype)
+        print('min:', shs_t.min().item())
+        print('max:', shs_t.max().item())
+        print('mean:', shs_t.mean().item())
+        print('std:', shs_t.std().item())
+        print('any negative:', (shs_t < 0).any().item())
+        print('---------------------\n')
+
         shs_raw = force_unbatched(shs_t, "shs", expected_dims=3)
-        shs = shs_raw.to(device) if shs_raw is not None else None
+        shs = shs_raw.to(device)
         
+        # If the key matched "colors" or "rgb", it might actually be 2D pre-activated RGB.
         colors_raw = force_unbatched(splats.get("colors"), "colors", expected_dims=2)
         colors = colors_raw.to(device) if colors_raw is not None else None
         
