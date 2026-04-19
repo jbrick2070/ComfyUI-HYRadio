@@ -122,7 +122,9 @@ class HYRadio_CinematicRenderer:
         opacities_raw = force_unbatched(splats.get("opacities"), "opacities", expected_dims=1)
         opacities = opacities_raw.to(device) if opacities_raw is not None else None
         
-        shs_raw = force_unbatched(splats.get("shs"), "shs", expected_dims=3)
+        # HYWorld 2.0 uses "sh", v1 uses "shs"
+        shs_t = splats.get("shs") if "shs" in splats else splats.get("sh")
+        shs_raw = force_unbatched(shs_t, "shs", expected_dims=3)
         shs = shs_raw.to(device) if shs_raw is not None else None
         
         colors_raw = force_unbatched(splats.get("colors"), "colors", expected_dims=2)
