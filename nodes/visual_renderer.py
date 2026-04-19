@@ -82,21 +82,55 @@ class HYRadio_CinematicRenderer:
 
     def _render_scene(self, scene_ply, scene_traj, bg_col, scale, device, frames_dir, global_fi):
         if not isinstance(scene_ply, dict) or "splats" not in scene_ply or scene_ply["splats"] is None:
-            if isinstance(scene_ply, dict) and "pts3d" in scene_ply and scene_ply["pts3d"] is not None:
-                pts3d = scene_ply["pts3d"]
-                if isinstance(pts3d, torch.Tensor) and pts3d.ndim >= 2:
-                    P = pts3d.shape[0]
-                    colors = torch.ones((P, 3), device=pts3d.device)
-                    if pts3d.shape[1] >= 6:
-                        colors = pts3d[:, 3:6].clamp(0, 1)
-                    scene_ply["splats"] = {
-                        "means": pts3d[:, :3],
-                        "colors": colors,
-                        "opacities": torch.ones((P, 1), device=pts3d.device),
-                        "scales": torch.ones((P, 3), device=pts3d.device) * 0.01,
-                        "quats": torch.zeros((P, 4), device=pts3d.device)
-                    }
-                    scene_ply["splats"]["quats"][:, 0] = 1.0
+            # Prefer pts3d_filtered — world_mirror_v2 emits this already flat (N,3) and mask-applied.
+            # Fall back to raw pts3d (1,S,H,W,3) + filter_mask only if filtered version is missing.
+            pts3d = scene_ply.get("pts3d_filtered") if isinstance(scene_ply, dict) else None
+            if pts3d is None and isinstance(scene_ply, dict):
+                raw = scene_ply.get("pts3d")
+                if raw is not None and isinstance(raw, torch.Tensor):
+                    if raw.ndim > 2:
+                        raw = raw.reshape(-1, 3)
+                    fm = scene_ply.get("filter_mask")
+                    if fm is not None and fm.shape[0] == raw.shape[0]:
+                        pts3d = raw[fm.bool()]
+                    else:
+                        pts3d = raw
+            
+            if pts3d is not None and isinstance(pts3d, torch.Tensor) and pts3d.shape[0] > 0:
+                # Build colors from images tensor shaped (1, S, 3, H, W) CHW.
+                colors_flat = None
+                images = scene_ply.get("images") if isinstance(scene_ply, dict) else None
+                if images is not None and isinstance(images, torch.Tensor):
+                    if images.ndim == 5:
+                        colors_flat = images[0].permute(0, 2, 3, 1).reshape(-1, 3)
+                    elif images.ndim == 4 and images.shape[1] == 3:
+                        colors_flat = images.permute(0, 2, 3, 1).reshape(-1, 3)
+                    elif images.ndim == 4:
+                        colors_flat = images.reshape(-1, 3)
+                    
+                    if colors_flat is not None:
+                        if colors_flat.max() > 1.5:
+                            colors_flat = colors_flat / 255.0
+                        colors_flat = colors_flat.clamp(0, 1)
+                        
+                        # If colors still includes filtered-out pixels, apply filter_mask.
+                        fm = scene_ply.get("filter_mask")
+                        if fm is not None and colors_flat.shape[0] == fm.shape[0] and colors_flat.shape[0] != pts3d.shape[0]:
+                            colors_flat = colors_flat[fm.bool()]
+                
+                if colors_flat is None or colors_flat.shape[0] != pts3d.shape[0]:
+                    colors_flat = torch.ones((pts3d.shape[0], 3), device=pts3d.device)
+                
+                P = pts3d.shape[0]
+                print(f"[HYRadio_CinematicRenderer] pts3d fallback: {P} points, colors shape {tuple(colors_flat.shape)}")
+                scene_ply["splats"] = {
+                    "means": pts3d.float(),
+                    "colors": colors_flat.to(device=pts3d.device, dtype=torch.float32),
+                    "opacities": torch.ones((P, 1), device=pts3d.device),
+                    "scales": torch.ones((P, 3), device=pts3d.device) * 0.01,
+                    "quats": torch.zeros((P, 4), device=pts3d.device)
+                }
+                scene_ply["splats"]["quats"][:, 0] = 1.0
             else:
                 print("[HYRadio_CinematicRenderer] Missing gsplat or splat data. Generating empty frames.")
                 c2ws = scene_traj.get("c2ws")
@@ -240,19 +274,6 @@ class HYRadio_CinematicRenderer:
                     "backgrounds": bg_tensor.unsqueeze(0).expand(viewmat_chunk.shape[0], -1).contiguous() if is_gsplat_15 else bg_tensor.unsqueeze(0)
                 }
                 
-                # USER REQUESTED SCHEMA FIX (cam_cfg drift)
-                _CAM_KEYS = ("camera_config", "cameras", "camera_info", "camera")
-                cam_cfg = next(
-                    (scene_ply[k] for k in _CAM_KEYS if k in scene_ply and scene_ply[k] is not None),
-                    None,
-                )
-                from gsplat import CameraModelType
-                camera_model = (
-                    cam_cfg.CameraModelType
-                    if cam_cfg is not None and hasattr(cam_cfg, "CameraModelType")
-                    else CameraModelType.PINHOLE
-                )
-                
                 if is_gsplat_15:
                     if shs is not None:
                         raster_kwargs["colors"] = shs
@@ -262,11 +283,29 @@ class HYRadio_CinematicRenderer:
                 else:
                     raster_kwargs["colors"] = None
                     raster_kwargs["shs"] = shs
-                
+
                 if GSPLAT_AVAILABLE:
+                    # Only resolve CameraModelType if gsplat will actually rasterize.
+                    # CameraModelType is not top-level re-exported in all gsplat versions;
+                    # try the import defensively, fall through to rasterization's default otherwise.
+                    try:
+                        from gsplat import CameraModelType
+                        _CAM_KEYS = ("camera_config", "cameras", "camera_info", "camera")
+                        cam_cfg = next(
+                            (scene_ply[k] for k in _CAM_KEYS if k in scene_ply and scene_ply[k] is not None),
+                            None,
+                        )
+                        raster_kwargs["camera_model"] = (
+                            cam_cfg.CameraModelType
+                            if cam_cfg is not None and hasattr(cam_cfg, "CameraModelType")
+                            else CameraModelType.PINHOLE
+                        )
+                    except ImportError:
+                        pass
                     render_colors, _, _ = rasterization(**raster_kwargs)
                     img_out = render_colors.clamp(0, 1).cpu().numpy()
                 else:
+                    # FastPLYRenderer fallback path (no gsplat C++ backend)
                     import sys
                     wm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "worldmirror")
                     if wm_dir not in sys.path:
@@ -278,7 +317,6 @@ class HYRadio_CinematicRenderer:
                     fov_deg = math.degrees(fov_rad)
                     bg_col_tuple = (bg_rgb[0], bg_rgb[1], bg_rgb[2])
                     
-                    # FastPLY uses a loop for multiple viewmats
                     rendered_list = []
                     for b in range(viewmat_chunk.shape[0]):
                         out_t = fast_renderer.render(
