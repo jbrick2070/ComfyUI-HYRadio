@@ -143,20 +143,32 @@ class HYRadio_CinematicRenderer:
             K_in = K.unsqueeze(0)      # [1, 3, 3]
             
             try:
-                # gsplat v1.0.0+ rasterization signature
-                render_colors, _, _ = rasterization(
-                    means=means,
-                    quats=quats,
-                    scales=scales,
-                    opacities=opacities_in,
-                    colors=None, # pass SHs
-                    viewmats=viewmat,
-                    Ks=K_in,
-                    width=W,
-                    height=H,
-                    shs=shs,
-                    backgrounds=bg_tensor.unsqueeze(0)
-                )
+                # Resolve gsplat 1.4 vs 1.5+ signature dynamically
+                import inspect
+                from gsplat import rasterization
+                raster_kwargs = {
+                    "means": means,
+                    "quats": quats,
+                    "scales": scales,
+                    "opacities": opacities_in,
+                    "viewmats": viewmat,
+                    "Ks": K_in,
+                    "width": W,
+                    "height": H,
+                    "backgrounds": bg_tensor.unsqueeze(0)
+                }
+                
+                sig = inspect.signature(rasterization).parameters
+                if "sh_degree" in sig:
+                    # gsplat 1.5.x+ requires SHs passed as colors with sh_degree
+                    raster_kwargs["colors"] = shs
+                    raster_kwargs["sh_degree"] = 0
+                else:
+                    # gsplat <= 1.4.x
+                    raster_kwargs["colors"] = None
+                    raster_kwargs["shs"] = shs
+                
+                render_colors, _, _ = rasterization(**raster_kwargs)
                 
                 # render_colors is [1, H, W, 3] float32 array
                 img_out = render_colors[0].clamp(0, 1).cpu()
