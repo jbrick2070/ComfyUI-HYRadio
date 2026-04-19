@@ -497,9 +497,7 @@
         {
           "name": "filepath",
           "type": "STRING",
-          "links": [
-            3018
-          ]
+          "links": []
         }
       ],
       "properties": {
@@ -611,16 +609,12 @@
         {
           "name": "extrinsics",
           "type": "EXTRINSICS",
-          "links": [
-            5004
-          ]
+          "links": []
         },
         {
           "name": "intrinsics",
           "type": "INTRINSICS",
-          "links": [
-            5005
-          ]
+          "links": []
         }
       ],
       "properties": {
@@ -914,36 +908,12 @@
       "IMAGE"
     ],
     [
-      3018,
-      12,
-      0,
-      16,
-      0,
-      "STRING"
-    ],
-    [
       4002,
       105,
       0,
       14,
       0,
       "IMAGE"
-    ],
-    [
-      5004,
-      201,
-      1,
-      16,
-      1,
-      "EXTRINSICS"
-    ],
-    [
-      5005,
-      201,
-      2,
-      16,
-      2,
-      "INTRINSICS"
     ],
     [
       5006,
