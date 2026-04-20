@@ -174,6 +174,12 @@ class HYRadio_CinematicRenderer:
             scene_diameter = bb.norm().item()
             scene_traj = _vt_clamp(scene_traj, scene_diameter=scene_diameter)
             c2ws = scene_traj["c2ws"]   # re-fetch in case translations were scaled
+            print(f"[HYRadio_CinematicRenderer] Scene clamp diag: "
+                  f"scene_diameter={scene_diameter:.3f}, "
+                  f"cam_norm_range=[{c2ws[:,:3,3].norm(dim=-1).min().item():.3f}, "
+                  f"{c2ws[:,:3,3].norm(dim=-1).max().item():.3f}], "
+                  f"means_bbox_center={means.mean(dim=0).tolist()}, "
+                  f"means_bbox_size={(means.max(dim=0).values - means.min(dim=0).values).tolist()}")
 
         quats_raw = force_unbatched(splats.get("quats"), "quats", expected_dims=2)
         quats = quats_raw.to(device) if quats_raw is not None else None
