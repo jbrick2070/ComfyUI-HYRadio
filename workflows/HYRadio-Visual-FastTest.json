@@ -1,6 +1,6 @@
 {
-  "last_node_id": 7,
-  "last_link_id": 8,
+  "last_node_id": 8,
+  "last_link_id": 9,
   "nodes": [
     {
       "id": 1,
@@ -325,7 +325,9 @@
         {
           "name": "frames_pattern",
           "type": "STRING",
-          "links": []
+          "links": [
+            9
+          ]
         }
       ],
       "title": "7. Cinematic Renderer (writes PNGs to ComfyUI/temp/cinematic_frames_*/)",
@@ -338,6 +340,35 @@
         "0.0,0.0,0.0",
         1.0
       ]
+    },
+    {
+      "id": 8,
+      "type": "HYRadio_RenderOutput",
+      "pos": [
+        1520,
+        50
+      ],
+      "size": [
+        315,
+        80
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "frames_pattern",
+          "type": "STRING",
+          "link": 9
+        }
+      ],
+      "outputs": [],
+      "title": "8. Render Output (Terminal Sink)",
+      "color": "#114444",
+      "bgcolor": "#225555",
+      "properties": {
+        "Node name for S&R": "HYRadio_RenderOutput"
+      }
     }
   ],
   "links": [
@@ -404,6 +435,14 @@
       7,
       1,
       "CAMERA_TRAJECTORY"
+    ],
+    [
+      9,
+      7,
+      0,
+      8,
+      0,
+      "STRING"
     ]
   ],
   "version": 0.4
