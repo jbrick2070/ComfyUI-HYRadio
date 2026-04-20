@@ -420,5 +420,5 @@ FodyWeavers.xsd
 node.zip.worktrees/
 .pytest_cache
 
-# HYRadio runtime outputs (FastTest previews, panorama batches, render frames)
+# HYRadio runtime outputs (Fast previews, panorama batches, render frames)
 output/
