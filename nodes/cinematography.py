@@ -120,8 +120,7 @@ class HYWorld_CinematicTranslator:
             # Dynamic Audio Sync 
             duration = params.get("duration_seconds", None)
             if duration is not None:
-                # TEMP FOR VERIFICATION RENDER — revert after confirming pixels work
-                scene_frames = 240  # max(4, int(float(duration) * 24))
+                scene_frames = max(4, int(float(duration) * 24))
             else:
                 scene_frames = num_frames
                 
