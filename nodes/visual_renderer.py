@@ -165,7 +165,16 @@ class HYRadio_CinematicRenderer:
 
         means_raw = force_unbatched(splats.get("means"), "means", expected_dims=2)
         means = means_raw.to(device) if means_raw is not None else None
-        
+
+        # Scene-aware trajectory clamp — prevents camera from flying past the
+        # reconstructed scene. Diameter = bounding-box diagonal of the point cloud.
+        if means is not None and means.shape[0] > 0:
+            from .cinematography import _validate_trajectory as _vt_clamp
+            bb = means.max(dim=0).values - means.min(dim=0).values
+            scene_diameter = bb.norm().item()
+            scene_traj = _vt_clamp(scene_traj, scene_diameter=scene_diameter)
+            c2ws = scene_traj["c2ws"]   # re-fetch in case translations were scaled
+
         quats_raw = force_unbatched(splats.get("quats"), "quats", expected_dims=2)
         quats = quats_raw.to(device) if quats_raw is not None else None
         

@@ -7,8 +7,15 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-def _validate_trajectory(traj: dict) -> dict:
-    """SE(3) + intrinsics sanity. Auto-repairs common corruptions, logs issues."""
+def _validate_trajectory(traj: dict, scene_diameter: float = None) -> dict:
+    """SE(3) + intrinsics sanity. Auto-repairs common corruptions, logs issues.
+
+    If scene_diameter is provided and the max camera-position norm exceeds it,
+    all c2w translations are uniformly scaled so the farthest camera sits at
+    exactly scene_diameter from the world origin. Prevents trajectories from
+    flying past the reconstructed point cloud (e.g. forward preset with
+    speed=0.07 over 4000+ frames = 285 world units against a 3-5 unit scene).
+    """
     c2ws = traj.get("c2ws")
     intrs = traj.get("intrs")
     if c2ws is None or intrs is None:
@@ -41,6 +48,22 @@ def _validate_trajectory(traj: dict) -> dict:
             issues.append("c2ws bottom row repaired to [0,0,0,1]")
             c2ws = c2ws.clone()
             c2ws[..., 3, :] = expected
+
+    # Scene-aware translation clamp.
+    # Camera positions live in c2w[:, :3, 3]. If the farthest position from
+    # the world origin exceeds scene_diameter, uniformly scale all translations
+    # so the trajectory stays inside the reconstructed scene volume.
+    if scene_diameter is not None and scene_diameter > 0 and c2ws.shape[-2:] == (4, 4):
+        translations = c2ws[..., :3, 3]                          # [N, 3]
+        max_norm = translations.norm(dim=-1).max().item()
+        if max_norm > scene_diameter:
+            scale = scene_diameter / max_norm
+            c2ws = c2ws.clone()
+            c2ws[..., :3, 3] = c2ws[..., :3, 3] * scale
+            issues.append(
+                f"trajectory rescaled by {scale:.4f} "
+                f"(max_norm {max_norm:.3f} > scene_diameter {scene_diameter:.3f})"
+            )
 
     traj["c2ws"] = c2ws
     traj["intrs"] = intrs
