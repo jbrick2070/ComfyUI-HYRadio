@@ -69,7 +69,7 @@ try:
         "VNCCS_LoadWorldMirrorModel",
         "VNCCS_WorldMirror3D",
         "VNCCS_WorldMirror3D_Official",
-        "VNCCS_WorldMirror_3D",
+        "VNCCS_WorldMirrorV2_3D",
         "VNCCS_Equirect360ToViews",
         "VNCCS_SavePLY",
         "VNCCS_BackgroundPreview",
@@ -654,15 +654,15 @@ try:
     else:
         fail("VNCCS_WorldMirror3D: offload_scheme not found in optional inputs")
 
-    # VNCCS_WorldMirror_3D (V2)
-    wm2_inputs = NODE_CLASS_MAPPINGS["VNCCS_WorldMirror_3D"].INPUT_TYPES()
+    # VNCCS_WorldMirrorV2_3D (V2)
+    wm2_inputs = NODE_CLASS_MAPPINGS["VNCCS_WorldMirrorV2_3D"].INPUT_TYPES()
     offload_spec2 = wm2_inputs.get("optional", {}).get("offload_scheme")
     if offload_spec2:
         options2 = offload_spec2[0]
         if isinstance(options2, list) and "none" in options2:
-            ok(f"VNCCS_WorldMirror_3D offload_scheme options: {options2}")
+            ok(f"VNCCS_WorldMirrorV2_3D offload_scheme options: {options2}")
         else:
-            fail(f"VNCCS_WorldMirror_3D offload_scheme missing 'none': {options2}")
+            fail(f"VNCCS_WorldMirrorV2_3D offload_scheme missing 'none': {options2}")
 
 except Exception as e:
     fail(f"Offload scheme: {e}")
