@@ -172,6 +172,12 @@ class HYRadio_CinematicRenderer:
             from .cinematography import _validate_trajectory as _vt_clamp
             bb = means.max(dim=0).values - means.min(dim=0).values
             scene_diameter = bb.norm().item()
+            # Recenter point cloud to world origin so trajectory presets
+            # (which assume scene-at-origin) aim at the geometry instead of
+            # flying past it. Bbox size is unchanged, so scene_diameter stays valid.
+            bbox_center = means.mean(dim=0)
+            means = means - bbox_center
+            splats["means"] = means  # keep dict in sync for downstream consumers
             scene_traj = _vt_clamp(scene_traj, scene_diameter=scene_diameter)
             c2ws = scene_traj["c2ws"]   # re-fetch in case translations were scaled
             print(f"[HYRadio_CinematicRenderer] Scene clamp diag: "
