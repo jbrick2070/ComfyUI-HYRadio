@@ -272,9 +272,37 @@ class HYRadio_CinematicRenderer:
         
         # Invert all cameras to w2c simultaneously
         w2cs = torch.linalg.inv(c2ws).contiguous()
-        
+
+        # === HYRADIO SPLAT DIAGNOSTIC ===
+        # Prints splat bbox + camera-to-scene distance so we can see whether
+        # WorldMirror V2 collapsed the scene into a tiny cluster (zero-baseline
+        # trap) and where the cinematic camera sits relative to it.
+        print("=== HYRADIO SPLAT DIAGNOSTIC ===")
+        print(f"Total splats: {means.shape[0]}")
+        if means.shape[0] > 0:
+            bbox_min = means.min(dim=0)[0]
+            bbox_max = means.max(dim=0)[0]
+            bbox_center = (bbox_min + bbox_max) / 2
+            scene_diameter = torch.norm(bbox_max - bbox_min).item()
+            print(f"BBox min:    {bbox_min.tolist()}")
+            print(f"BBox max:    {bbox_max.tolist()}")
+            print(f"BBox center: {bbox_center.tolist()}")
+            print(f"Scene diameter: {scene_diameter:.4f}")
+            try:
+                cam_start = torch.linalg.inv(w2cs[0])[:3, 3]
+                cam_end = torch.linalg.inv(w2cs[-1])[:3, 3]
+                dist_start = torch.norm(cam_start - bbox_center).item()
+                dist_end = torch.norm(cam_end - bbox_center).item()
+                print(f"Cam start pos: {cam_start.tolist()}")
+                print(f"Cam end pos:   {cam_end.tolist()}")
+                print(f"Cam start -> scene center: {dist_start:.4f}")
+                print(f"Cam end -> scene center:   {dist_end:.4f}")
+            except Exception as e:
+                print(f"Pose diag failed: {e}")
+        print("================================")
+
         # Set chunk size to prevent VRAM overflow on output frames (e.g. 32 frames * 1080p * 3 = ~800MB)
-        chunk_size = 32 if is_gsplat_15 else 1 
+        chunk_size = 32 if is_gsplat_15 else 1
         
         for start_idx in range(0, total_frames, chunk_size):
             end_idx = min(start_idx + chunk_size, total_frames)
