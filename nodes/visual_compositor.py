@@ -1,4 +1,5 @@
 import os
+import glob
 import torch
 import numpy as np
 import subprocess
@@ -43,12 +44,37 @@ class HYRadio_VideoCompositor:
 
     def composite(self, frames_pattern, base_video_path, fps=24, composite_mode="full_overlay"):
         os.makedirs(COMFY_OUTPUT_DIR, exist_ok=True)
-        
-        if not os.path.exists(base_video_path):
-            print(f"[HYRadio_VideoCompositor] ERROR: base video not found at {base_video_path}")
+
+        # Normalize INPUT_IS_LIST upstream nodes that may wrap single strings in a list.
+        if isinstance(frames_pattern, list):
+            frames_pattern = frames_pattern[0] if frames_pattern else ""
+        if isinstance(base_video_path, list):
+            base_video_path = base_video_path[0] if base_video_path else ""
+
+        # ----- base video check -----
+        if not isinstance(base_video_path, str) or not base_video_path or not os.path.exists(base_video_path):
+            print(f"[HYRadio_VideoCompositor] ABORT: base video missing/invalid: {base_video_path!r}")
+            return (str(base_video_path),)
+
+        # ----- frames_pattern check (previously missing) -----
+        # Upstream CinematicRenderer returns "" on failure. Also guard against a
+        # non-string (old bug returned a tensor) and an empty frames_dir.
+        if not isinstance(frames_pattern, str) or not frames_pattern:
+            print(f"[HYRadio_VideoCompositor] CINEMATIC FRAMES UNAVAILABLE (frames_pattern={frames_pattern!r}) — "
+                  f"returning base video only. The HYWorld cinematic overlay will be MISSING from final output. "
+                  f"Check [CinematicRenderer] logs above for the real failure.")
             return (base_video_path,)
-            
-        print(f"[HYRadio_VideoCompositor] Streaming frames directly from disk: {frames_pattern}")
+
+        # Expand the %05d pattern to count real files on disk.
+        frames_dir = os.path.dirname(frames_pattern)
+        if not os.path.isdir(frames_dir):
+            print(f"[HYRadio_VideoCompositor] CINEMATIC FRAMES DIR MISSING: {frames_dir} — returning base video only.")
+            return (base_video_path,)
+        png_count = len(glob.glob(os.path.join(frames_dir, "frame_*.png")))
+        if png_count == 0:
+            print(f"[HYRadio_VideoCompositor] CINEMATIC FRAMES DIR EMPTY: {frames_dir} — returning base video only.")
+            return (base_video_path,)
+        print(f"[HYRadio_VideoCompositor] frames_pattern={frames_pattern} ({png_count} PNGs on disk)")
         
         session_id = str(int(time.time()))
         
@@ -91,15 +117,27 @@ class HYRadio_VideoCompositor:
             out_path
         ]
         
-        print(f"[HYRadio_VideoCompositor] Launching FFMPEG compositor...")
+        print(f"[HYRadio_VideoCompositor] Launching FFMPEG compositor ({composite_mode}, {png_count} overlay frames)...")
         try:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-            print(f"[HYRadio_VideoCompositor] SUCCESS! Saved to {out_path}")
+            # Capture stdout too — ffmpeg logs its real errors on stderr but we
+            # want both streams if something surprising happens.
+            result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # Verify the output file was actually written and non-empty before claiming success.
+            if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
+                err = result.stderr.decode("utf-8", errors="replace") if result.stderr else ""
+                print(f"[HYRadio_VideoCompositor] FFMPEG claimed success but output is missing/empty at {out_path}")
+                print(f"[HYRadio_VideoCompositor] ffmpeg stderr:\n{err}")
+                return (base_video_path,)
+            print(f"[HYRadio_VideoCompositor] SUCCESS! Saved to {out_path} ({os.path.getsize(out_path)} bytes)")
         except subprocess.CalledProcessError as e:
             err = e.stderr.decode("utf-8", errors="replace") if e.stderr else ""
-            print(f"[HYRadio_VideoCompositor] FFMPEG FAILED: {err}")
+            print(f"[HYRadio_VideoCompositor] FFMPEG FAILED (returncode={e.returncode}):\n{err}")
+            print(f"[HYRadio_VideoCompositor] cmd was: {' '.join(cmd)}")
             return (base_video_path,) # Fallback to original
-            
+        except FileNotFoundError as e:
+            print(f"[HYRadio_VideoCompositor] FFMPEG BINARY NOT FOUND: {ffmpeg_bin} ({e}) — returning base video only.")
+            return (base_video_path,)
+
         return {"ui": {"text": [out_path]}, "result": (out_path,)}
 
 NODE_CLASS_MAPPINGS = {

@@ -412,6 +412,11 @@ class HYRadio_CinematicRenderer:
                     torch.cuda.empty_cache()
 
             frames_pattern = os.path.join(frames_dir, "frame_%05d.png")
+            # Verify at least one frame actually landed on disk before returning success.
+            # An empty frames_dir would make downstream ffmpeg silently fall back to base.
+            if global_fi <= 0:
+                print(f"[CinematicRenderer] EXIT FAIL: 0 frames written to {frames_dir}")
+                return ("",)
             print(f"[CinematicRenderer] EXIT OK: {global_fi} frames saved to {frames_pattern}")
             return (frames_pattern,)
 
@@ -419,7 +424,10 @@ class HYRadio_CinematicRenderer:
             import traceback
             print(f"[CinematicRenderer] EXIT FAIL: {type(e).__name__}: {e}")
             print(traceback.format_exc())
-            return (torch.zeros((1, 512, 512, 3), dtype=torch.float32),)
+            # Return empty string (not a tensor) so downstream STRING consumer
+            # can detect the failure cleanly and emit a loud error instead of
+            # silently falling back to base video with no cinematic overlay.
+            return ("",)
 
 NODE_CLASS_MAPPINGS = {
     "HYRadio_CinematicRenderer": HYRadio_CinematicRenderer
