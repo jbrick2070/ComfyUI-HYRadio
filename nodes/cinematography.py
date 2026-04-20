@@ -134,8 +134,6 @@ class HYWorld_CinematicTranslator:
                 return float(val) if val is not None else float(default)
                 
             preset = params.get("preset", fallback_preset)
-            # TEMP TEST OVERRIDE - remove after circular preset evaluation
-            preset = "circular"
             fov_deg = _get_float("fov_deg", 70.0)
             radius = _get_float("radius", 1.0)
             speed = _get_float("speed", 0.05)
