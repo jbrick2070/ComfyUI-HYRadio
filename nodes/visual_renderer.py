@@ -267,9 +267,9 @@ class HYRadio_CinematicRenderer:
 
         bg_rgb = [float(x.strip()) for x in bg_col.split(",")]
         bg_tensor = torch.tensor(bg_rgb, dtype=torch.float32, device=device)
-        
+
         print(f"[HYRadio_CinematicRenderer] Rendering {total_frames} frames via gsplat @ {W}x{H}...")
-        
+
         # Invert all cameras to w2c simultaneously
         w2cs = torch.linalg.inv(c2ws).contiguous()
 
@@ -299,6 +299,17 @@ class HYRadio_CinematicRenderer:
                 print(f"Cam end -> scene center:   {dist_end:.4f}")
             except Exception as e:
                 print(f"Pose diag failed: {e}")
+            # Disambiguate H1 (pose convention flip) vs trajectory-walks-out-the-back.
+            # If cam_forward_0 and direction_to_center point roughly the same way,
+            # camera is LOOKING AT the scene (recenter fix is right).
+            # If opposite, camera is looking AWAY from the scene (H1 flip).
+            try:
+                cam_forward_0 = torch.linalg.inv(w2cs[0])[:3, 2]  # camera's +Z axis in world
+                print(f"Cam forward vector @ frame 0: {cam_forward_0.tolist()}")
+                direction_to_center = (bbox_center - cam_start).tolist()
+                print(f"Direction from cam to scene center: {direction_to_center}")
+            except Exception as e:
+                print(f"Forward diag failed: {e}")
         print("================================")
 
         # Set chunk size to prevent VRAM overflow on output frames (e.g. 32 frames * 1080p * 3 = ~800MB)
