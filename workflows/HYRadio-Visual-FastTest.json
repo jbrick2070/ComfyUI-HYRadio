@@ -1,0 +1,410 @@
+{
+  "last_node_id": 7,
+  "last_link_id": 8,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        50,
+        50
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "title": "1. Panorama (pick latest HYRadio_Panorama_Batch_*.png from dropdown)",
+      "color": "#223344",
+      "bgcolor": "#334455",
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "HYRadio_Panorama_Batch_00001_.png",
+        "image"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "VNCCS_LoadWorldMirrorV2Model",
+      "pos": [
+        400,
+        50
+      ],
+      "size": [
+        310,
+        90
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "model",
+          "type": "WORLDMIRROR_MODEL",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "title": "2. WorldMirror V2 (cuda bf16 normal+gs)",
+      "properties": {
+        "Node name for S&R": "VNCCS_LoadWorldMirrorV2Model"
+      },
+      "widgets_values": [
+        "cuda",
+        "bf16",
+        "normal+gs"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "VNCCS_Equirect360ToViews",
+      "pos": [
+        400,
+        200
+      ],
+      "size": [
+        300,
+        320
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "panorama",
+          "type": "IMAGE",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "views",
+          "type": "IMAGE",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "intrinsics",
+          "type": "TENSOR",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "camera_poses",
+          "type": "TENSOR",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "title": "3. Equirect -> 24 Views (8 yaws x 3 pitches)",
+      "properties": {
+        "Node name for S&R": "VNCCS_Equirect360ToViews"
+      },
+      "widgets_values": [
+        90,
+        45,
+        "-30,0,30",
+        518
+      ]
+    },
+    {
+      "id": 4,
+      "type": "HYWorld_PerSceneSplats",
+      "pos": [
+        760,
+        50
+      ],
+      "size": [
+        350,
+        330
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_batch",
+          "type": "IMAGE",
+          "link": 3
+        },
+        {
+          "name": "worldmirror_model",
+          "type": "WORLDMIRROR_MODEL",
+          "link": 2
+        },
+        {
+          "name": "camera_intrinsics",
+          "type": "TENSOR",
+          "link": 4
+        },
+        {
+          "name": "camera_poses",
+          "type": "TENSOR",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "ply_data",
+          "type": "PLY_DATA",
+          "links": [
+            6
+          ]
+        },
+        {
+          "name": "depth_maps",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "normal_maps",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "camera_poses",
+          "type": "TENSOR",
+          "links": []
+        },
+        {
+          "name": "camera_intrinsics",
+          "type": "TENSOR",
+          "links": []
+        },
+        {
+          "name": "raw_splats",
+          "type": "VNCCS_SPLAT",
+          "links": []
+        }
+      ],
+      "title": "4. PerScene Splats (24 views -> PLY)",
+      "properties": {
+        "Node name for S&R": "HYWorld_PerSceneSplats"
+      },
+      "widgets_values": [
+        518,
+        false,
+        24
+      ]
+    },
+    {
+      "id": 5,
+      "type": "HYWorld_StringListLiteral",
+      "pos": [
+        50,
+        450
+      ],
+      "size": [
+        400,
+        180
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "string_list",
+          "type": "STRING_LIST",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "title": "5. Cinematic Directive (hardcoded JSON)",
+      "color": "#224422",
+      "bgcolor": "#335533",
+      "properties": {
+        "Node name for S&R": "HYWorld_StringListLiteral"
+      },
+      "widgets_values": [
+        "[{\"preset\": \"forward\", \"fov_deg\": 90.0, \"speed\": 0.07, \"duration_seconds\": 2.0}]"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "HYWorld_CinematicTranslator",
+      "pos": [
+        500,
+        450
+      ],
+      "size": [
+        315,
+        150
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "cinematic_directives",
+          "type": "STRING_LIST",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "trajectory",
+          "type": "CAMERA_TRAJECTORY",
+          "links": [
+            8
+          ]
+        },
+        {
+          "name": "extrinsics",
+          "type": "EXTRINSICS",
+          "links": []
+        },
+        {
+          "name": "intrinsics",
+          "type": "INTRINSICS",
+          "links": []
+        }
+      ],
+      "title": "6. Cinematic Translator (48 frames @ 512x512)",
+      "properties": {
+        "Node name for S&R": "HYWorld_CinematicTranslator"
+      },
+      "widgets_values": [
+        0,
+        48,
+        512,
+        512,
+        "forward"
+      ]
+    },
+    {
+      "id": 7,
+      "type": "HYRadio_CinematicRenderer",
+      "pos": [
+        1160,
+        50
+      ],
+      "size": [
+        315,
+        130
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "ply_data",
+          "type": "PLY_DATA",
+          "link": 6
+        },
+        {
+          "name": "trajectory",
+          "type": "CAMERA_TRAJECTORY",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "frames_pattern",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "title": "7. Cinematic Renderer (writes PNGs to ComfyUI/temp/cinematic_frames_*/)",
+      "color": "#443322",
+      "bgcolor": "#554433",
+      "properties": {
+        "Node name for S&R": "HYRadio_CinematicRenderer"
+      },
+      "widgets_values": [
+        "0.0,0.0,0.0",
+        1.0
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      3,
+      0,
+      4,
+      1,
+      "WORLDMIRROR_MODEL"
+    ],
+    [
+      3,
+      2,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      2,
+      1,
+      4,
+      2,
+      "TENSOR"
+    ],
+    [
+      5,
+      2,
+      2,
+      4,
+      3,
+      "TENSOR"
+    ],
+    [
+      6,
+      4,
+      0,
+      7,
+      0,
+      "PLY_DATA"
+    ],
+    [
+      7,
+      5,
+      0,
+      6,
+      0,
+      "STRING_LIST"
+    ],
+    [
+      8,
+      6,
+      0,
+      7,
+      1,
+      "CAMERA_TRAJECTORY"
+    ]
+  ],
+  "version": 0.4
+}
