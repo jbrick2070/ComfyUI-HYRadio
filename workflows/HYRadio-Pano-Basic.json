@@ -1,0 +1,380 @@
+{
+  "last_node_id": 107,
+  "last_link_id": 9,
+  "nodes": [
+    {
+      "id": 100,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        50,
+        50
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            2,
+            3
+          ]
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "widgets_values": [
+        "sd3.5_large_fp8_scaled.safetensors"
+      ],
+      "title": "1. SD3.5 Large (Model Bank)",
+      "color": "#332244",
+      "bgcolor": "#553355",
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "size": [
+        315,
+        130
+      ]
+    },
+    {
+      "id": 101,
+      "type": "EmptyLatentImage",
+      "pos": [
+        50,
+        300
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "widgets_values": [
+        1536,
+        768,
+        1
+      ],
+      "title": "2. Panoramic Resolution (2:1 Ratio)",
+      "color": "#223344",
+      "bgcolor": "#334455",
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "size": [
+        315,
+        130
+      ]
+    },
+    {
+      "id": 102,
+      "type": "CLIPTextEncode",
+      "pos": [
+        400,
+        50
+      ],
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "widgets_values": [
+        "equirectangular 360 degree panorama photograph, wide spherical view, horizontal horizon line, seamless left and right edges, a tranquil sunlit forest clearing with tall trees, soft morning light, no people, no text, no watermark, cinematic, high detail"
+      ],
+      "title": "3. Panorama Prompt (Positive)",
+      "color": "#442222",
+      "bgcolor": "#553333",
+      "size": [
+        400,
+        150
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      }
+    },
+    {
+      "id": 103,
+      "type": "CLIPTextEncode",
+      "pos": [
+        400,
+        300
+      ],
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "widgets_values": [
+        "watermark, text, borders, bad quality, low quality, blurry, distorted, people, person, face, hands, split image, seam, duplicated horizon"
+      ],
+      "title": "4. Negative Prompt (Anti-Watermark)",
+      "color": "#442222",
+      "bgcolor": "#553333",
+      "size": [
+        400,
+        150
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      }
+    },
+    {
+      "id": 104,
+      "type": "KSampler",
+      "pos": [
+        800,
+        150
+      ],
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 1
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 6
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 7
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "widgets_values": [
+        42,
+        "randomize",
+        30,
+        4.5,
+        "dpmpp_2m",
+        "karras",
+        1.0
+      ],
+      "title": "5. Render Core (KSampler)",
+      "color": "#443322",
+      "bgcolor": "#554433",
+      "size": [
+        315,
+        260
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "KSampler"
+      }
+    },
+    {
+      "id": 105,
+      "type": "VAEDecode",
+      "pos": [
+        1200,
+        150
+      ],
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 8
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "title": "6. Final Output (VAE Decode)",
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "size": [
+        315,
+        130
+      ]
+    },
+    {
+      "id": 107,
+      "type": "SaveImage",
+      "pos": [
+        1500,
+        150
+      ],
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 9
+        }
+      ],
+      "outputs": [],
+      "widgets_values": [
+        "HYRadio_Pano_Basic"
+      ],
+      "title": "6. Save Panorama Batch",
+      "color": "#114444",
+      "bgcolor": "#225555",
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "size": [
+        315,
+        130
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      100,
+      0,
+      104,
+      0,
+      "MODEL"
+    ],
+    [
+      2,
+      100,
+      1,
+      102,
+      0,
+      "CLIP"
+    ],
+    [
+      3,
+      100,
+      1,
+      103,
+      0,
+      "CLIP"
+    ],
+    [
+      4,
+      100,
+      2,
+      105,
+      1,
+      "VAE"
+    ],
+    [
+      5,
+      101,
+      0,
+      104,
+      3,
+      "LATENT"
+    ],
+    [
+      6,
+      102,
+      0,
+      104,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      7,
+      103,
+      0,
+      104,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      8,
+      104,
+      0,
+      105,
+      0,
+      "LATENT"
+    ],
+    [
+      9,
+      105,
+      0,
+      107,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}
