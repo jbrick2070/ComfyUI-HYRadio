@@ -22,7 +22,7 @@ class HYWorld_PerSceneSplats:
             "optional": {
                 "target_size": ("INT", {"default": 518, "min": 140, "max": 1024, "step": 14}),
                 "use_gsplat": ("BOOLEAN", {"default": True}),
-                "views_per_scene": ("INT", {"default": 1, "min": 1, "max": 16,
+                "views_per_scene": ("INT", {"default": 1, "min": 1, "max": 32,
                                             "tooltip": "If >1, consumes this many consecutive images per scene from image_batch."}),
                 "camera_intrinsics": ("TENSOR",),
                 "camera_poses": ("TENSOR",),
