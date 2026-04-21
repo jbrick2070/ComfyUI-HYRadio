@@ -131,29 +131,6 @@ class HYWorld_CinematicTranslator:
                 return ply_data[i] if 0 <= i < len(ply_data) else None
             return ply_data
 
-        def _scene_bbox_center_from_ply(ply):
-            if not isinstance(ply, dict):
-                return None
-            means = None
-            splats = ply.get("splats")
-            if isinstance(splats, dict):
-                means = splats.get("means")
-            if means is None:
-                means = ply.get("pts3d_filtered")
-            if means is None:
-                means = ply.get("pts3d")
-            if means is None or means.numel() == 0:
-                return None
-            try:
-                if means.ndim == 3:
-                    means = means.reshape(-1, means.shape[-1])
-                bbox_min = means.min(dim=0).values
-                bbox_max = means.max(dim=0).values
-                return (bbox_min + bbox_max) / 2.0
-            except Exception as e:
-                print(f"[HYWorld_CinematicTranslator] bbox_center extraction failed: {e}")
-                return None
-
         def _scene_diameter_from_ply(ply):
             if not isinstance(ply, dict):
                 return None
@@ -263,21 +240,12 @@ class HYWorld_CinematicTranslator:
                 print(f"[HYWorld_CinematicTranslator] Scene {idx+1} scene_diameter={scene_diameter:.4f}")
             trajectory = _validate_trajectory(trajectory, scene_diameter=scene_diameter)
 
-            # Offset the preset's world-origin-anchored trajectory by the scene's
-            # bbox_center so the camera dollies/orbits INSIDE the reconstructed
-            # scene instead of past it. Applied after validation/clamp so the
-            # offset rides on top of the scene-diameter-scaled translations.
-            bbox_center = _scene_bbox_center_from_ply(scene_ply)
-            if bbox_center is not None:
-                c2ws = trajectory["c2ws"].clone()
-                offset = bbox_center.to(c2ws.device, c2ws.dtype)
-                c2ws[..., :3, 3] = c2ws[..., :3, 3] + offset
-                trajectory["c2ws"] = c2ws
-                new_start = c2ws[0, :3, 3].tolist()
-                print(
-                    f"[HYWorld_CinematicTranslator] Scene {idx+1} bbox_center offset applied: "
-                    f"{bbox_center.tolist()}; new cam start: {new_start}"
-                )
+            # Note: the preset's trajectory is already anchored at world origin,
+            # and HYRadio_CinematicRenderer mean-subtracts splats to origin
+            # before rasterization (nodes/visual_renderer.py, commit f9232fc).
+            # Do NOT offset c2ws by the scene bbox_center here — that double-
+            # operation used to push the camera outside the mean-subtracted
+            # scene and produced half-black frames.
 
             # Invert C2W to W2C for Extrinsics
             w2cs = _c2w_to_w2c(trajectory["c2ws"])
