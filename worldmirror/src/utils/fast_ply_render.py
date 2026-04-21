@@ -116,7 +116,14 @@ class FastPLYRenderer:
         canvas = torch.zeros((height * width, 3), device=self.device)
         depth_canvas = torch.zeros((height * width), device=self.device)
         mask_canvas = torch.zeros((height * width), device=self.device)
-        
+
+        # V2 emits bf16 splats; canvas defaults to fp32. index_put_ on the
+        # assignment below refuses dtype mismatch. colors is the only tensor
+        # that flows into canvas[idx] = ... (opacities/scales are arithmetic
+        # only, and auto-promote). Cast once here rather than inside splat_at.
+        if colors.dtype != canvas.dtype:
+            colors = colors.to(canvas.dtype)
+
         # Linear indices
         flat_idx = vi * width + ui
         
