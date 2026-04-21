@@ -85,6 +85,7 @@ class HYWorld_CinematicTranslator:
                 "cinematic_directives": ("STRING_LIST",),
             },
             "optional": {
+                "ply_data": ("PLY_DATA",),
                 "scene_index": ("INT", {"default": -1, "min": -1, "max": 999, "step": 1, "tooltip": "-1 means translate ALL scenes (native batching). 0+ translates a specific scene."}),
                 "num_frames": ("INT", {"default": 25, "min": 4, "max": 81}),
                 "image_width": ("INT", {"default": 512}),
@@ -99,12 +100,41 @@ class HYWorld_CinematicTranslator:
     FUNCTION = "translate"
     CATEGORY = "HYWorld/Cinematography"
     
-    def translate(self, cinematic_directives, scene_index=-1, num_frames=25, image_width=512, image_height=512, fallback_preset="forward"):
+    def translate(self, cinematic_directives, ply_data=None, scene_index=-1, num_frames=25, image_width=512, image_height=512, fallback_preset="forward"):
         # Graceful bound checks
         if not cinematic_directives:
             print("[HYWorld_CinematicTranslator] WARNING: empty directives list received.")
             cinematic_directives = [json.dumps({"preset": fallback_preset, "fov_deg": 70.0})]
-            
+
+        # Normalise ply_data to a per-scene lookup. ply_data may be:
+        #   - None (not wired) -> scene_diameter stays None, clamp inert (old behaviour)
+        #   - dict (single PLY) -> same value for every scene
+        #   - list (HYWorld_PerSceneSplats) -> index by scene
+        def _scene_ply(i):
+            if ply_data is None:
+                return None
+            if isinstance(ply_data, list):
+                return ply_data[i] if 0 <= i < len(ply_data) else None
+            return ply_data
+
+        def _scene_diameter_from_ply(ply):
+            if not isinstance(ply, dict):
+                return None
+            splats = ply.get("splats")
+            if not isinstance(splats, dict):
+                return None
+            means = splats.get("means")
+            if means is None or means.numel() == 0:
+                return None
+            try:
+                bbox_min = means.min(dim=0).values
+                bbox_max = means.max(dim=0).values
+                diag = (bbox_max - bbox_min).norm().item()
+                return float(diag) if diag > 0 else None
+            except Exception as e:
+                print(f"[HYWorld_CinematicTranslator] scene_diameter extraction failed: {e}")
+                return None
+
         out_trajectory = []
         out_extrinsics = []
         out_intrinsics = []
@@ -169,8 +199,11 @@ class HYWorld_CinematicTranslator:
                 "width": image_width,
                 "height": image_height,
             }
-            
-            trajectory = _validate_trajectory(trajectory)
+
+            scene_diameter = _scene_diameter_from_ply(_scene_ply(idx))
+            if scene_diameter is not None:
+                print(f"[HYWorld_CinematicTranslator] Scene {idx+1} scene_diameter={scene_diameter:.4f}")
+            trajectory = _validate_trajectory(trajectory, scene_diameter=scene_diameter)
             
             # Invert C2W to W2C for Extrinsics
             w2cs = _c2w_to_w2c(trajectory["c2ws"])
