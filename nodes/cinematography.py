@@ -101,6 +101,20 @@ class HYWorld_CinematicTranslator:
     CATEGORY = "HYWorld/Cinematography"
     
     def translate(self, cinematic_directives, ply_data=None, scene_index=-1, num_frames=25, image_width=512, image_height=512, fallback_preset="forward"):
+        # Diagnostic: log exactly what ply_data arrived as so we can tell whether
+        # the wire is dropped by the frontend, passed as a list, or as a dict.
+        _entry = f"[HYWorld_CinematicTranslator] ENTRY ply_data type={type(ply_data).__name__}, is_None={ply_data is None}"
+        if isinstance(ply_data, list):
+            _entry += f", len={len(ply_data)}"
+        elif isinstance(ply_data, dict):
+            _entry += f", keys={list(ply_data.keys())[:6]}"
+        print(_entry)
+        if isinstance(ply_data, list) and len(ply_data) > 0:
+            _first = ply_data[0]
+            _tag = f"  first element: type={type(_first).__name__}"
+            if isinstance(_first, dict):
+                _tag += f", keys={list(_first.keys())[:6]}"
+            print(_tag)
         # Graceful bound checks
         if not cinematic_directives:
             print("[HYWorld_CinematicTranslator] WARNING: empty directives list received.")
