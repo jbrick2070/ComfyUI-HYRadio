@@ -134,17 +134,37 @@ class HYWorld_CinematicTranslator:
         def _scene_diameter_from_ply(ply):
             if not isinstance(ply, dict):
                 return None
+            # Prefer splats.means; fallback to pts3d_filtered then pts3d
+            # (splats is None when V2's gs head is disabled — same fallback
+            # chain the renderer uses).
+            means = None
+            source = None
             splats = ply.get("splats")
-            if not isinstance(splats, dict):
-                return None
-            means = splats.get("means")
+            if isinstance(splats, dict):
+                means = splats.get("means")
+                if means is not None:
+                    source = "splats.means"
+            if means is None:
+                means = ply.get("pts3d_filtered")
+                if means is not None:
+                    source = "pts3d_filtered"
+            if means is None:
+                means = ply.get("pts3d")
+                if means is not None:
+                    source = "pts3d"
             if means is None or means.numel() == 0:
                 return None
             try:
+                # pts3d comes out shaped [B, N, 3]; flatten so bbox is over all points.
+                if means.ndim == 3:
+                    means = means.reshape(-1, means.shape[-1])
                 bbox_min = means.min(dim=0).values
                 bbox_max = means.max(dim=0).values
                 diag = (bbox_max - bbox_min).norm().item()
-                return float(diag) if diag > 0 else None
+                if diag > 0:
+                    print(f"[HYWorld_CinematicTranslator] scene_diameter source={source}")
+                    return float(diag)
+                return None
             except Exception as e:
                 print(f"[HYWorld_CinematicTranslator] scene_diameter extraction failed: {e}")
                 return None
