@@ -98,103 +98,63 @@ class FastPLYRenderer:
         scales = scales[indices]
         z = z[indices] # Need sorted z for point size calc
         
-        # 7. Compute Point Size
-        # Projected size in pixels ~= scale * focal / z
-        sizes = (scales * focal / z).clamp(min=3.0)
-        
-        # 8. Draw!
-        # Since we cannot loop, we use "Scatter Splatting".
-        # We round coordinates to integers.
-        # To handle occlusion properly with Painter's Algorithm in a vectorized way:
-        # We can just assign values to a flat buffer. Latest writes win.
-        # Since we sorted Far-to-Near, the Near points will be written last. Perfect.
-        
+        # 7. Gaussian-kernel splat accumulator.
+        # Instead of last-writer-wins 3x3 squares (which produced hard edges
+        # and left sparse/pointillist gaps when cam was far from the scene),
+        # each projected point contributes to a 5x5 Gaussian footprint with
+        # depth-weighted alpha. Overlapping points blend via weighted average;
+        # near points dominate over far ones via 1/(z^2+eps) depth weighting.
+        # This is a cheap stand-in for gsplat's real Gaussian rasterization
+        # — edges get soft falloff, gaps between projected points fill in
+        # naturally, and the result looks less pointillist.
+
+        # Build kernel once: 5x5 Gaussian, sigma=1, trimmed at w>=0.05.
+        sigma = 1.0
+        kernel = []
+        for dv in range(-2, 3):
+            for du in range(-2, 3):
+                w = math.exp(-(du * du + dv * dv) / (2.0 * sigma * sigma))
+                if w >= 0.05:
+                    kernel.append((du, dv, float(w)))
+
         ui = u.long()
         vi = v.long()
-        
-        # Create Canvas
-        canvas = torch.zeros((height * width, 3), device=self.device)
-        depth_canvas = torch.zeros((height * width), device=self.device)
-        mask_canvas = torch.zeros((height * width), device=self.device)
 
-        # V2 emits bf16 splats; canvas defaults to fp32. index_put_ on the
-        # assignment below refuses dtype mismatch. colors is the only tensor
-        # that flows into canvas[idx] = ... (opacities/scales are arithmetic
-        # only, and auto-promote). Cast once here rather than inside splat_at.
-        if colors.dtype != canvas.dtype:
-            colors = colors.to(canvas.dtype)
+        # Cast to fp32 for stable accumulation. V2 emits bf16; index_add_
+        # requires matched dtypes across accumulators.
+        if colors.dtype != torch.float32:
+            colors = colors.float()
+        if opacities.dtype != torch.float32:
+            opacities = opacities.float()
+        if z.dtype != torch.float32:
+            z = z.float()
 
-        # Linear indices
-        flat_idx = vi * width + ui
-        
-        # Simple Points (1px)
-        # canvas.index_copy_(0, flat_idx, colors)
-        # But this doesn't blend.
-        
-        # "Splatting" with variable kernel size is hard vectorized.
-        # Workaround: Render 3 copies with offsets (Center, Right, Down, Diag) to simulate 2x2 block?
-        # Better: Filter by point size. 
-        # Large points (> 2px) -> Draw 9 pixels (3x3).
-        # Small points -> Draw 1 pixel.
-        
-        # Let's try Multi-Pass Scatter for "Fat Points" (approx 3x3 kernel)
-        
-        offsets = [
-            (0,0), (1,0), (-1,0), (0,1), (0,-1),
-             (1,1), (-1,-1), (1,-1), (-1,1)
-        ]
-        
-        # Start with valid pixels
-        base_mask = (ui >= 1) & (ui < width-1) & (vi >= 1) & (vi < height-1) # Safe margin
-        
-        final_colors = colors * opacities.unsqueeze(1) # Pre-multiply? No, just use as solid color for now
-        
-        # We just write to canvas.
-        # We can implement simple alpha blending? 
-        # Standard: Dest = Src * Alpha + Dest * (1 - Alpha).
-        # Vectorized sequential modification is tricky in Pytorch (index_put is non-deterministic or atomic sum).
-        # BUT! We just want to "paint". Overwriting is fine for "Solid Splats".
-        # For opacity, we can just assume solid (alpha=1) for simplicity and speed.
-        # The user wants "Backgrounds", usually solid geometry.
-        
-        # Optimization: Only draw 'fat' splats for points that have projected size > 1.5
-        is_large = sizes > 1.5
-        
-        # Global canvas update helper
-        def splat_at(du, dv, point_mask=None):
-            if point_mask is not None:
-                mask = base_mask & point_mask
-            else:
-                mask = base_mask
-                
-            if not mask.any(): return
-            
-            idx = (vi[mask] + dv) * width + (ui[mask] + du)
-            # Use simple assignment for "last writer wins" (Nearest-Front due to sorting)
-            canvas[idx] = colors[mask]
+        # Depth-weighted alpha: near points dominate the weighted average,
+        # approximating occlusion. Stronger than 1/z since z spans ~[0.1, 2]
+        # for typical scenes; z^2 gives ~20x weight swing end-to-end.
+        depth_weight = 1.0 / (z * z + 0.25)
+        point_alpha = opacities * depth_weight  # [N]
 
-        # Draw Center (all points)
-        splat_at(0, 0)
-        
-        # Draw neighbors for large points (3x3 block)
-        # This makes points look like 3x3 squares. Faster than circles.
-        
-        neighbor_offsets = [(1,0), (-1,0), (0,1), (0,-1), (1,1), (1,-1), (-1,1), (-1,-1)]
-        for dx, dy in neighbor_offsets:
-             splat_at(dx, dy, is_large)
-             
-        # Reshape
-        img = canvas.reshape(height, width, 3)
-        
-        # Simple hole filling (Avg pool)
-        # If output has too many black holes, we can dilate.
-        # Let's return raw for now.
-        
-        # Reshape
-        img = canvas.reshape(height, width, 3)
-        
-        # Flip vertically (fix for OpenCV/OpenGL coordinate mismatch)
+        numer = torch.zeros(height * width, 3, device=self.device, dtype=torch.float32)
+        denom = torch.zeros(height * width, device=self.device, dtype=torch.float32)
+
+        for du, dv, kw in kernel:
+            new_u = ui + du
+            new_v = vi + dv
+            in_frame = (new_u >= 0) & (new_u < width) & (new_v >= 0) & (new_v < height)
+            if not in_frame.any():
+                continue
+            idx = new_v[in_frame] * width + new_u[in_frame]
+            w_vec = kw * point_alpha[in_frame]             # [M]
+            numer.index_add_(0, idx, colors[in_frame] * w_vec.unsqueeze(1))
+            denom.index_add_(0, idx, w_vec)
+
+        # Weighted average. Pixels never written stay black (denom=0 -> 0/eps).
+        img = numer / (denom.unsqueeze(1) + 1e-6)
+        img = img.reshape(height, width, 3)
+
+        # Flip vertically (OpenCV -> screen top-left-origin mapping)
         img = torch.flip(img, [0])
-        
-        return img 
+
+        return img
 
