@@ -144,16 +144,13 @@ def _build_trajectory(
         if CAMERA_UTILS_AVAILABLE:
             for j in range(1, num_frames + 1):
                 c2w = c2w_start.copy()
-                # gsplat OpenCV convention: camera looks down local +Z.
-                # Walk in the looking direction (+Z), not opposite to it.
-                c2w = camera_backward_forward(c2w, speed * j)
+                c2w = camera_backward_forward(c2w, -speed * j)
                 c2ws_np.append(c2w)
         else:
-            # Pure-numpy fallback: translate along local +Z (looking direction
-            # under gsplat/OpenCV convention).
+            # Pure-numpy fallback: translate along local -Z axis
             for j in range(1, num_frames + 1):
                 c2w = c2w_start.copy()
-                forward_vec = np.array([0, 0, speed * j, 1.0], dtype=np.float32)
+                forward_vec = np.array([0, 0, -speed * j, 1.0], dtype=np.float32)
                 c2w[:3, 3] = (c2w @ forward_vec)[:3]
                 c2ws_np.append(c2w)
 
@@ -162,13 +159,12 @@ def _build_trajectory(
         if CAMERA_UTILS_AVAILABLE:
             for j in range(1, num_frames + 1):
                 c2w = c2w_start.copy()
-                # zoom_in = move toward subject along looking direction (+Z, OpenCV).
-                c2w = camera_backward_forward(c2w, radius * j / num_frames)
+                c2w = camera_backward_forward(c2w, -radius * j / num_frames)
                 c2ws_np.append(c2w)
         else:
             for j in range(1, num_frames + 1):
                 c2w = c2w_start.copy()
-                dist = radius * j / num_frames
+                dist = -radius * j / num_frames
                 c2w[:3, 3] = (c2w @ np.array([0, 0, dist, 1.0], dtype=np.float32))[:3]
                 c2ws_np.append(c2w)
 
@@ -177,13 +173,12 @@ def _build_trajectory(
         if CAMERA_UTILS_AVAILABLE:
             for j in range(1, num_frames + 1):
                 c2w = c2w_start.copy()
-                # zoom_out = retreat from subject (-Z under gsplat/OpenCV).
-                c2w = camera_backward_forward(c2w, -radius * j / num_frames)
+                c2w = camera_backward_forward(c2w, radius * j / num_frames)
                 c2ws_np.append(c2w)
         else:
             for j in range(1, num_frames + 1):
                 c2w = c2w_start.copy()
-                dist = -radius * j / num_frames
+                dist = radius * j / num_frames
                 c2w[:3, 3] = (c2w @ np.array([0, 0, dist, 1.0], dtype=np.float32))[:3]
                 c2ws_np.append(c2w)
 
