@@ -1,6 +1,6 @@
 {
   "last_node_id": 8,
-  "last_link_id": 9,
+  "last_link_id": 10,
   "nodes": [
     {
       "id": 1,
@@ -171,7 +171,8 @@
           "name": "ply_data",
           "type": "PLY_DATA",
           "links": [
-            6
+            6,
+            10
           ]
         },
         {
@@ -262,6 +263,11 @@
           "name": "cinematic_directives",
           "type": "STRING_LIST",
           "link": 7
+        },
+        {
+          "name": "ply_data",
+          "type": "PLY_DATA",
+          "link": 10
         }
       ],
       "outputs": [
@@ -443,6 +449,14 @@
       8,
       0,
       "STRING"
+    ],
+    [
+      10,
+      4,
+      0,
+      6,
+      1,
+      "PLY_DATA"
     ]
   ],
   "version": 0.4
