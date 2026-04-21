@@ -140,31 +140,42 @@ def _build_trajectory(
             c2ws_np.append(c2w)
 
     elif preset == "forward":
+        # Dolly-in from OUTSIDE the scene volume. Start the camera at a far
+        # -Z offset, then walk +Z (toward origin) by `speed` per frame.
+        # After _validate_trajectory's scene-diameter clamp uniformly rescales
+        # all translations, the camera stays behind the scene throughout the
+        # walk — which keeps scene points in front of the near-clip and inside
+        # the FOV cone, avoiding the half-black first frames we saw when the
+        # camera started AT origin (inside the mean-subtracted point cloud).
         c2ws_np = []
+        start_back = -2.0 * speed * num_frames
         if CAMERA_UTILS_AVAILABLE:
             for j in range(1, num_frames + 1):
                 c2w = c2w_start.copy()
-                c2w = camera_backward_forward(c2w, -speed * j)
+                c2w = camera_backward_forward(c2w, start_back + speed * j)
                 c2ws_np.append(c2w)
         else:
-            # Pure-numpy fallback: translate along local -Z axis
+            # Pure-numpy fallback: translate along local Z axis
             for j in range(1, num_frames + 1):
                 c2w = c2w_start.copy()
-                forward_vec = np.array([0, 0, -speed * j, 1.0], dtype=np.float32)
+                pos_z = start_back + speed * j
+                forward_vec = np.array([0, 0, pos_z, 1.0], dtype=np.float32)
                 c2w[:3, 3] = (c2w @ forward_vec)[:3]
                 c2ws_np.append(c2w)
 
     elif preset == "zoom_in":
+        # Dolly-in: start the camera at -2*radius on local Z and walk forward
+        # to -radius. Same outside-the-scene rationale as the forward preset.
         c2ws_np = []
         if CAMERA_UTILS_AVAILABLE:
             for j in range(1, num_frames + 1):
                 c2w = c2w_start.copy()
-                c2w = camera_backward_forward(c2w, -radius * j / num_frames)
+                c2w = camera_backward_forward(c2w, -2.0 * radius + radius * j / num_frames)
                 c2ws_np.append(c2w)
         else:
             for j in range(1, num_frames + 1):
                 c2w = c2w_start.copy()
-                dist = -radius * j / num_frames
+                dist = -2.0 * radius + radius * j / num_frames
                 c2w[:3, 3] = (c2w @ np.array([0, 0, dist, 1.0], dtype=np.float32))[:3]
                 c2ws_np.append(c2w)
 
